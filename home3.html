@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Management System</title>
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 256px; /* w-64 */
+            background-color: #1f2937; /* bg-gray-800 */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 16px; /* p-4 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+        }
+        .sidebar-title {
+            font-size: 2rem; /* text-2xl */
+            font-weight: 700; /* font-bold */
+            margin-bottom: 32px; /* mb-8 */
+            text-align: center;
+            color: #fb923c; /* text-orange-400 */
+        }
+        .sidebar-nav {
+            flex: 1; /* flex-1 */
+        }
+        .sidebar-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            /* space-y-2 equivalent */
+        }
+        .sidebar-nav li {
+            margin-bottom: 8px; /* space-y-2 equivalent */
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px; /* p-3 */
+            border-radius: 8px; /* rounded-lg */
+            transition-property: background-color, color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+        }
+        .nav-link:hover {
+            background-color: #374151; /* hover:bg-gray-700 */
+        }
+        .nav-link svg {
+            width: 20px; /* w-5 */
+            height: 20px; /* h-5 */
+            margin-right: 12px; /* mr-3 */
+        }
+        .nav-link.active {
+            background-color: #374151; /* Active state background */
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1; /* flex-1 */
+            display: flex;
+            flex-direction: column;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .header {
+            background-color: white;
+            padding: 16px; /* p-4 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-title {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .header-user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px; /* space-x-4 */
+        }
+        .header-user-info span {
+            color: #4b5563; /* text-gray-600 */
+        }
+        .header-settings-btn {
+            padding: 8px; /* p-2 */
+            border-radius: 9999px; /* rounded-full */
+            background-color: #e5e7eb; /* bg-gray-200 */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+        }
+        .header-settings-btn:hover {
+            background-color: #d1d5db; /* hover:bg-gray-300 */
+        }
+        .header-settings-btn svg {
+            width: 24px; /* w-6 */
+            height: 24px; /* h-6 */
+            color: #374151; /* text-gray-700 */
+        }
+
+        /* Content Sections */
+        .content-area {
+            flex: 1; /* flex-1 */
+            padding: 24px; /* p-6 */
+            overflow-y: auto;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* grid-cols-1 */
+            gap: 24px; /* gap-6 */
+        }
+        @media (min-width: 768px) { /* md: */
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr); /* md:grid-cols-2 */
+            }
+        }
+        @media (min-width: 1024px) { /* lg: */
+            .dashboard-grid {
+                grid-template-columns: repeat(4, 1fr); /* lg:grid-cols-4 */
+            }
+        }
+        .card {
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-text-sm {
+            color: #6b7280; /* text-gray-500 */
+            font-size: 0.875rem; /* text-sm */
+        }
+        .card-text-bold {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .card-icon {
+            width: 40px; /* w-10 */
+            height: 40px; /* h-10 */
+        }
+        .card-icon.green { color: #22c55e; } /* text-green-500 */
+        .card-icon.blue { color: #3b82f6; } /* text-blue-500 */
+        .card-icon.red { color: #ef4444; } /* text-red-500 */
+        .card-icon.purple { color: #a855f7; } /* text-purple-500 */
+
+        .sales-overview-chart {
+            margin-top: 32px; /* mt-8 */
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        }
+        .sales-overview-chart h3 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .chart-placeholder {
+            height: 256px; /* h-64 */
+            background-color: #f9fafb; /* bg-gray-50 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af; /* text-gray-400 */
+            border-radius: 6px; /* rounded-md */
+            border: 1px dashed #d1d5db; /* border border-dashed border-gray-300 */
+        }
+
+        /* General Section Styling */
+        h2 {
+            font-size: 2.25rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 24px; /* mb-6 */
+        }
+        .section-card {
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        }
+        .section-card h3 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .add-button {
+            background-color: #2563eb; /* bg-blue-600 */
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 8px 16px; /* py-2 px-4 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            margin-bottom: 16px; /* mb-4 */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .add-button:hover {
+            background-color: #1d4ed8; /* hover:bg-blue-700 */
+        }
+
+        /* Table Styling */
+        .table-container {
+            overflow-x: auto;
+        }
+        .data-table {
+            min-width: 100%; /* min-w-full */
+            border-collapse: collapse;
+            border-spacing: 0;
+            border-top: 1px solid #e5e7eb; /* divide-y divide-gray-200 */
+        }
+        .data-table thead {
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .data-table th {
+            padding: 12px 24px; /* px-6 py-3 */
+            text-align: left;
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 500; /* font-medium */
+            color: #6b7280; /* text-gray-500 */
+            text-transform: uppercase;
+            letter-spacing: 0.05em; /* tracking-wider */
+        }
+        .data-table th:first-child {
+            border-top-left-radius: 8px; /* rounded-tl-lg */
+        }
+        .data-table th:last-child {
+            border-top-right-radius: 8px; /* rounded-tr-lg */
+        }
+        .data-table tbody {
+            background-color: white;
+            border-bottom: 1px solid #e5e7eb; /* divide-y divide-gray-200 */
+        }
+        .data-table td {
+            padding: 16px 24px; /* px-6 py-4 */
+            white-space: nowrap; /* whitespace-nowrap */
+            font-size: 0.875rem; /* text-sm */
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .data-table td:last-child {
+            border-bottom: none; /* Remove border from last row's cells */
+        }
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .data-table td.font-medium {
+            font-weight: 500; /* font-medium */
+            color: #1f2937; /* text-gray-900 */
+        }
+        .data-table td.text-gray {
+            color: #6b7280; /* text-gray-500 */
+        }
+        .status-badge {
+            padding: 2px 8px; /* px-2 inline-flex */
+            font-size: 0.75rem; /* text-xs */
+            line-height: 1.25rem; /* leading-5 */
+            font-weight: 600; /* font-semibold */
+            border-radius: 9999px; /* rounded-full */
+        }
+        .status-badge.preparing {
+            background-color: #fef3c7; /* bg-yellow-100 */
+            color: #b45309; /* text-yellow-800 */
+        }
+        .status-badge.ready {
+            background-color: #d1fae5; /* bg-green-100 */
+            color: #065f46; /* text-green-800 */
+        }
+        .table-actions button {
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition-property: color;
+            transition-duration: 200ms;
+        }
+        .table-actions button.edit {
+            color: #4f46e5; /* text-indigo-600 */
+            margin-right: 8px; /* mr-2 */
+        }
+        .table-actions button.edit:hover {
+            color: #4338ca; /* hover:text-indigo-900 */
+        }
+        .table-actions button.delete, .table-actions button.cancel {
+            color: #dc2626; /* text-red-600 */
+        }
+        .table-actions button.delete:hover, .table-actions button.cancel:hover {
+            color: #991b1b; /* hover:text-red-900 */
+        }
+        .table-actions button.view-details {
+            color: #2563eb; /* text-blue-600 */
+        }
+        .table-actions button.view-details:hover {
+            color: #1d4ed8; /* hover:text-blue-900 */
+        }
+        .table-actions button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Reports Section Buttons */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* grid-cols-1 */
+            gap: 16px; /* gap-4 */
+        }
+        @media (min-width: 768px) { /* md: */
+            .reports-grid {
+                grid-template-columns: repeat(2, 1fr); /* md:grid-cols-2 */
+            }
+        }
+        .report-button {
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 12px 24px; /* py-3 px-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .report-button.green { background-color: #16a34a; } /* bg-green-600 */
+        .report-button.green:hover { background-color: #15803d; } /* hover:bg-green-700 */
+        .report-button.yellow { background-color: #ca8a04; } /* bg-yellow-600 */
+        .report-button.yellow:hover { background-color: #a16207; } /* hover:bg-yellow-700 */
+        .report-button.purple { background-color: #9333ea; } /* bg-purple-600 */
+        .report-button.purple:hover { background-color: #7e22ce; } /* hover:bg-purple-700 */
+        .report-button.teal { background-color: #0d9488; } /* bg-teal-600 */
+        .report-button.teal:hover { background-color: #0f766e; } /* hover:bg-teal-700 */
+
+        /* Forms (Menu Management, Expenses, Inventory) */
+        .form-card {
+            margin-bottom: 24px; /* mb-6 */
+            padding: 16px; /* p-4 */
+            border: 1px solid #e5e7eb; /* border border-gray-200 */
+            border-radius: 8px; /* rounded-lg */
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .form-card h4 {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 12px; /* mb-3 */
+            color: #374151; /* text-gray-700 */
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* grid-cols-1 */
+            gap: 16px; /* gap-4 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        @media (min-width: 768px) { /* md: */
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr); /* md:grid-cols-2 */
+            }
+        }
+        .form-group {
+            /* margin-bottom: 16px; removed as gap handles spacing */
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+            color: #374151; /* text-gray-700 */
+            margin-bottom: 4px;
+        }
+        .form-group input, .form-group select {
+            display: block;
+            width: 100%; /* w-full */
+            margin-top: 4px; /* mt-1 */
+            border-radius: 6px; /* rounded-md */
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+            padding: 8px; /* p-2 */
+            font-size: 0.875rem; /* sm:text-sm */
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #4f46e5; /* focus:border-indigo-500 */
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* focus:ring-indigo-500 */
+        }
+        .form-buttons {
+            display: flex;
+            gap: 8px; /* space-x-2 */
+        }
+        .form-buttons button {
+            font-weight: 700; /* font-bold */
+            padding: 8px 16px; /* py-2 px-4 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .form-buttons button[type="submit"] {
+            background-color: #4f46e5; /* bg-indigo-600 */
+            color: white;
+        }
+        .form-buttons button[type="submit"]:hover {
+            background-color: #4338ca; /* hover:bg-indigo-700 */
+        }
+        .form-buttons button.cancel-button {
+            background-color: #9ca3af; /* bg-gray-400 */
+            color: white;
+        }
+        .form-buttons button.cancel-button:hover {
+            background-color: #6b7280; /* hover:bg-gray-500 */
+        }
+        .form-buttons button.hidden {
+            display: none;
+        }
+
+        /* Message Box */
+        .message-box {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(31, 41, 55, 0.75); /* bg-gray-800 bg-opacity-75 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .message-box.hidden {
+            display: none;
+        }
+        .message-box-content {
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-xl */
+            max-width: 384px; /* max-w-sm */
+            width: 100%;
+            text-align: center;
+        }
+        .message-box-text {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .message-box-ok-btn {
+            background-color: #4f46e5; /* bg-indigo-600 */
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 8px 16px; /* py-2 px-4 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .message-box-ok-btn:hover {
+            background-color: #4338ca; /* hover:bg-indigo-700 */
+        }
+
+        /* Table Empty State */
+        .table-empty-state {
+            padding: 16px 24px; /* px-6 py-4 */
+            text-align: center;
+            color: #6b7280; /* text-gray-500 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-title">
+            DineFlow
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li>
+                    <a href="#" data-section="dashboard" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="kitchen" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Kitchen
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="sales" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Sales
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="inventory-management" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                        Inventory
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="expenses" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                        Expenses
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="reports" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="menu-management" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Menu Management
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="header">
+            <h1 id="current-section-title" class="header-title">Dashboard</h1>
+            <div class="header-user-info">
+                <span>Welcome, Admin!</span>
+                <button class="header-settings-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div id="content-area" class="content-area">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="dashboard-grid">
+                    <!-- Card 1: Total Sales -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">Total Sales</p>
+                            <p class="card-text-bold">$12,450</p>
+                        </div>
+                        <svg class="card-icon green" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.592 1L21 12h-3.812c-.622 1.043-1.554 1.795-2.67 2.234l-1.355 1.355C12.71 17.065 11.2 17.5 9.75 17.5H4.25c-1.24 0-2.25-1.01-2.25-2.25v-2.5c0-1.24 1.01-2.25 2.25-2.25h5.5c1.45 0 2.96-.435 4.125-1.25l1.355-1.355C14.462 7.105 15.394 6.353 16.016 5.31H21l-5.408-2.704C14.08 2.402 13.11 2 12 2z"></path></svg>
+                    </div>
+                    <!-- Card 2: New Orders -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">New Orders</p>
+                            <p class="card-text-bold">45</p>
+                        </div>
+                        <svg class="card-icon blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    </div>
+                    <!-- Card 3: Expenses -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">Total Expenses</p>
+                            <p class="card-text-bold">$3,120</p>
+                        </div>
+                        <svg class="card-icon red" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                    </div>
+                    <!-- Card 4: Customers Served -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">Customers Served</p>
+                            <p class="card-text-bold">870</p>
+                        </div>
+                        <svg class="card-icon purple" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h2a2 2 0 002-2V7a2 2 0 00-2-2h-3V3a1 1 0 00-1-1H8a1 1 0 00-1 1v2H4a2 2 0 00-2 2v11a2 2 0 002 2h2l3 2 3-2h3"></path></svg>
+                    </div>
+                </div>
+
+                <div class="sales-overview-chart">
+                    <h3>Sales Overview (Last 7 Days)</h3>
+                    <!-- Placeholder for a chart -->
+                    <div class="chart-placeholder">
+                        Graph/Chart Placeholder
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kitchen Section -->
+            <section id="kitchen" class="content-section">
+                <h2>Kitchen Management</h2>
+                <div class="section-card">
+                    <h3>Current Orders</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Sample Kitchen Orders -->
+                                <tr>
+                                    <td class="font-medium">#ORD001</td>
+                                    <td class="text-gray">Spaghetti Carbonara</td>
+                                    <td class="text-gray">2</td>
+                                    <td>
+                                        <span class="status-badge preparing">
+                                            Preparing
+                                        </span>
+                                    </td>
+                                    <td class="table-actions">
+                                        <button class="edit">Mark Ready</button>
+                                        <button class="delete">Cancel</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-medium">#ORD002</td>
+                                    <td class="text-gray">Grilled Salmon</td>
+                                    <td class="text-gray">1</td>
+                                    <td>
+                                        <span class="status-badge ready">
+                                            Ready
+                                        </span>
+                                    </td>
+                                    <td class="table-actions">
+                                        <button class="edit" disabled>Mark Ready</button>
+                                        <button class="delete">Cancel</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales Section -->
+            <section id="sales" class="content-section">
+                <h2>Sales Management</h2>
+                <div class="section-card">
+                    <h3>Recent Transactions</h3>
+                    <button id="simulate-sale-btn" class="add-button">Simulate Samosa Sale</button>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Date</th>
+                                    <th>Item Sold</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Cost of Goods</th>
+                                    <th>Profit</th>
+                                    <th>Payment Method</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-transactions-table-body">
+                                <!-- Sample Sales Transactions -->
+                                <tr>
+                                    <td class="font-medium">#TRN001</td>
+                                    <td class="text-gray">2025-07-20</td>
+                                    <td class="text-gray">Classic Burger</td>
+                                    <td class="text-gray">1</td>
+                                    <td class="text-gray">$12.99</td>
+                                    <td class="text-gray">$5.00</td> <!-- Example cost -->
+                                    <td class="text-gray">$7.99</td>
+                                    <td class="text-gray">Credit Card</td>
+                                    <td class="table-actions">
+                                        <button class="view-details">View Details</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-medium">#TRN002</td>
+                                    <td class="text-gray">2025-07-19</td>
+                                    <td class="text-gray">Caesar Salad</td>
+                                    <td class="text-gray">1</td>
+                                    <td class="text-gray">$8.50</td>
+                                    <td class="text-gray">$3.00</td> <!-- Example cost -->
+                                    <td class="text-gray">$5.50</td>
+                                    <td class="text-gray">Cash</td>
+                                    <td class="table-actions">
+                                        <button class="view-details">View Details</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Inventory Management Section -->
+            <section id="inventory-management" class="content-section">
+                <h2>Inventory Management</h2>
+                <div class="section-card">
+                    <h3>Raw Ingredients Stock</h3>
+
+                    <!-- Add New Ingredient Form -->
+                    <form id="inventory-form" class="form-card">
+                        <h4>Add/Edit Ingredient</h4>
+                        <input type="hidden" id="ingredient-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="ingredient-name">Ingredient Name</label>
+                                <input type="text" id="ingredient-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ingredient-quantity">Quantity</label>
+                                <input type="number" id="ingredient-quantity" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ingredient-unit">Unit (e.g., kg, liter, pcs)</label>
+                                <input type="text" id="ingredient-unit" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ingredient-cost-per-unit">Cost Per Unit ($)</label>
+                                <input type="number" id="ingredient-cost-per-unit" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="submit">
+                                Save Ingredient
+                            </button>
+                            <button type="button" id="cancel-ingredient-edit-btn" class="cancel-button hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Inventory Items List -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Quantity</th>
+                                    <th>Unit</th>
+                                    <th>Cost/Unit</th>
+                                    <th>Total Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-items-table-body">
+                                <!-- Inventory items will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses" class="content-section">
+                <h2>Expenses Management</h2>
+                <div class="section-card">
+                    <h3>Recent Expenses</h3>
+                    <!-- Add New Expense Form -->
+                    <form id="expense-form" class="form-card">
+                        <h4>Add/Edit Expense</h4>
+                        <input type="hidden" id="expense-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="expense-date">Date</label>
+                                <input type="date" id="expense-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-category">Category</label>
+                                <input type="text" id="expense-category" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-description">Description</label>
+                                <input type="text" id="expense-description" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-amount">Amount ($)</label>
+                                <input type="number" id="expense-amount" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="submit">
+                                Save Expense
+                            </button>
+                            <button type="button" id="cancel-expense-edit-btn" class="cancel-button hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-table-body">
+                                <!-- Sample Expenses -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports" class="content-section">
+                <h2>Reports</h2>
+                <div class="section-card">
+                    <h3>Generate Reports</h3>
+                    <div class="reports-grid">
+                        <button class="report-button green">
+                            Sales Report
+                        </button>
+                        <button class="report-button yellow">
+                            Expense Report
+                        </button>
+                        <button class="report-button purple">
+                            Inventory Report
+                        </button>
+                        <button class="report-button teal">
+                            Custom Report
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Menu Management Section (CRUD Example) -->
+            <section id="menu-management" class="content-section">
+                <h2>Menu Management</h2>
+                <div class="section-card">
+                    <h3>Menu Items</h3>
+
+                    <!-- Add New Item Form -->
+                    <form id="menu-form" class="form-card">
+                        <h4>Add/Edit Menu Item</h4>
+                        <input type="hidden" id="menu-item-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="item-name">Item Name</label>
+                                <input type="text" id="item-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="item-price">Price ($)</label>
+                                <input type="number" id="item-price" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-category">Category</label>
+                            <input type="text" id="item-category" required>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="submit">
+                                Save Item
+                            </button>
+                            <button type="button" id="cancel-menu-edit-btn" class="cancel-button hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Menu Items List -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menu-items-table-body">
+                                <!-- Menu items will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Custom Message Box -->
+    <div id="message-box" class="message-box hidden">
+        <div class="message-box-content">
+            <p id="message-text" class="message-box-text"></p>
+            <button id="message-ok-btn" class="message-box-ok-btn">
+                OK
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // In-memory data store for menu items (for demonstration of CRUD)
+        let menuItems = [
+            { id: 'm1', name: 'Classic Burger', category: 'Main Course', price: 12.99 },
+            { id: 'm2', name: 'Caesar Salad', category: 'Appetizer', price: 8.50 },
+            { id: 'm3', name: 'Chocolate Lava Cake', category: 'Dessert', price: 7.00 },
+            { id: 'm4', name: 'Orange Juice', category: 'Beverage', price: 3.50 },
+            { id: 'm5', name: 'Samosa (4 pcs)', category: 'Appetizer', price: 5.00 } // Added Samosa
+        ];
+
+        // In-memory data store for inventory items
+        let inventoryItems = [
+            { id: 'i1', name: 'Flour', quantity: 50, unit: 'kg', costPerUnit: 1.20 },
+            { id: 'i2', name: 'Cooking Oil', quantity: 20, unit: 'liter', costPerUnit: 3.50 },
+            { id: 'i3', name: 'Salt', quantity: 10, unit: 'kg', costPerUnit: 0.80 },
+            { id: 'i4', name: 'Potatoes', quantity: 30, unit: 'kg', costPerUnit: 0.75 },
+            { id: 'i5', name: 'Onions', quantity: 15, unit: 'kg', costPerUnit: 0.60 },
+            { id: 'i6', name: 'Ground Beef', quantity: 25, unit: 'kg', costPerUnit: 8.00 },
+            { id: 'i7', name: 'Buns', quantity: 100, unit: 'pcs', costPerUnit: 0.20 },
+            { id: 'i8', name: 'Lettuce', quantity: 5, unit: 'head', costPerUnit: 1.50 },
+            { id: 'i9', name: 'Tomatoes', quantity: 8, unit: 'kg', costPerUnit: 1.00 },
+            { id: 'i10', name: 'Cheese', quantity: 10, unit: 'kg', costPerUnit: 5.00 },
+            { id: 'i11', name: 'Salmon Fillets', quantity: 10, unit: 'pcs', costPerUnit: 12.00 },
+            { id: 'i12', name: 'Lemon', quantity: 20, unit: 'pcs', costPerUnit: 0.30 },
+            { id: 'i13', name: 'Pasta', quantity: 15, unit: 'kg', costPerUnit: 2.00 },
+            { id: 'i14', name: 'Eggs', quantity: 50, unit: 'pcs', costPerUnit: 0.25 },
+            { id: 'i15', name: 'Bacon', quantity: 5, unit: 'kg', costPerUnit: 7.00 },
+            { id: 'i16', name: 'Chocolate', quantity: 5, unit: 'kg', costPerUnit: 6.00 },
+            { id: 'i17', name: 'Oranges', quantity: 20, unit: 'kg', costPerUnit: 1.00 }
+        ];
+
+        // In-memory data store for expenses
+        let expenses = [
+            { id: 'e1', date: '2025-07-18', category: 'Ingredients', description: 'Fresh Vegetables', amount: 150.00 },
+            { id: 'e2', date: '2025-07-15', category: 'Utilities', description: 'Electricity Bill', amount: 300.00 }
+        ];
+
+        // In-memory data store for sales transactions (updated to include cost of goods)
+        let salesTransactions = [
+            { id: 't1', date: '2025-07-20', itemSold: 'Classic Burger', quantity: 1, amount: 12.99, costOfGoods: 5.00, profit: 7.99, paymentMethod: 'Credit Card' },
+            { id: 't2', date: '2025-07-19', itemSold: 'Caesar Salad', quantity: 1, amount: 8.50, costOfGoods: 3.00, profit: 5.50, paymentMethod: 'Cash' }
+        ];
+
+        // Simplified Recipes (linking menu items to ingredients and quantities)
+        // In a real system, this would be managed by the user or a more complex backend
+        const recipes = {
+            'm1': [ // Classic Burger
+                { ingredientId: 'i6', quantity: 0.25 }, // 0.25 kg Ground Beef
+                { ingredientId: 'i7', quantity: 2 },    // 2 pcs Buns
+                { ingredientId: 'i8', quantity: 0.1 },  // 0.1 head Lettuce
+                { ingredientId: 'i9', quantity: 0.05 }, // 0.05 kg Tomatoes
+                { ingredientId: 'i10', quantity: 0.02 } // 0.02 kg Cheese
+            ],
+            'm2': [ // Caesar Salad
+                { ingredientId: 'i8', quantity: 0.5 },  // 0.5 head Lettuce
+                { ingredientId: 'i14', quantity: 1 }    // 1 egg (for dressing)
+            ],
+            'm3': [ // Chocolate Lava Cake
+                { ingredientId: 'i16', quantity: 0.1 }, // 0.1 kg Chocolate
+                { ingredientId: 'i14', quantity: 0.5 }, // 0.5 pcs Eggs
+                { ingredientId: 'i1', quantity: 0.05 }  // 0.05 kg Flour
+            ],
+            'm4': [ // Orange Juice
+                { ingredientId: 'i17', quantity: 0.3 }  // 0.3 kg Oranges
+            ],
+            'm5': [ // Samosa (4 pcs) - Example Recipe
+                { ingredientId: 'i1', quantity: 0.1 },  // 0.1 kg Flour
+                { ingredientId: 'i2', quantity: 0.05 }, // 0.05 liter Cooking Oil
+                { ingredientId: 'i3', quantity: 0.01 }, // 0.01 kg Salt
+                { ingredientId: 'i4', quantity: 0.2 },  // 0.2 kg Potatoes
+                { ingredientId: 'i5', quantity: 0.05 }  // 0.05 kg Onions
+            ]
+        };
+
+
+        // Function to generate a unique ID (simple for demo)
+        const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
+
+        // DOM Elements
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+        const currentSectionTitle = document.getElementById('current-section-title');
+
+        // Menu Management Elements
+        const menuForm = document.getElementById('menu-form');
+        const menuItemIdInput = document.getElementById('menu-item-id');
+        const itemNameInput = document.getElementById('item-name');
+        const itemPriceInput = document.getElementById('item-price');
+        const itemCategoryInput = document.getElementById('item-category');
+        const menuItemsTableBody = document.getElementById('menu-items-table-body');
+        const cancelMenuEditBtn = document.getElementById('cancel-menu-edit-btn');
+
+        // Inventory Management Elements
+        const inventoryForm = document.getElementById('inventory-form');
+        const ingredientIdInput = document.getElementById('ingredient-id');
+        const ingredientNameInput = document.getElementById('ingredient-name');
+        const ingredientQuantityInput = document.getElementById('ingredient-quantity');
+        const ingredientUnitInput = document.getElementById('ingredient-unit');
+        const ingredientCostPerUnitInput = document.getElementById('ingredient-cost-per-unit');
+        const inventoryItemsTableBody = document.getElementById('inventory-items-table-body');
+        const cancelIngredientEditBtn = document.getElementById('cancel-ingredient-edit-btn');
+
+        // Expenses Management Elements
+        const expenseForm = document.getElementById('expense-form');
+        const expenseIdInput = document.getElementById('expense-id');
+        const expenseDateInput = document.getElementById('expense-date');
+        const expenseCategoryInput = document.getElementById('expense-category');
+        const expenseDescriptionInput = document.getElementById('expense-description');
+        const expenseAmountInput = document.getElementById('expense-amount');
+        const expensesTableBody = document.getElementById('expenses-table-body');
+        const cancelExpenseEditBtn = document.getElementById('cancel-expense-edit-btn');
+
+        // Sales Elements
+        const salesTransactionsTableBody = document.getElementById('sales-transactions-table-body');
+        const simulateSaleBtn = document.getElementById('simulate-sale-btn');
+
+
+        // Message Box Elements
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const messageOkBtn = document.getElementById('message-ok-btn');
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+        }
+
+        // Event listener for the OK button in the message box
+        messageOkBtn.addEventListener('click', () => {
+            messageBox.classList.add('hidden');
+        });
+
+        /**
+         * Hides all content sections.
+         */
+        function hideAllSections() {
+            contentSections.forEach(section => {
+                section.classList.add('hidden');
+                section.classList.remove('active');
+            });
+        }
+
+        /**
+         * Shows a specific content section and updates the title.
+         * @param {string} sectionId - The ID of the section to show.
+         */
+        function showSection(sectionId) {
+            hideAllSections();
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                targetSection.classList.add('active');
+                // Update title based on the section's h2 or a formatted ID
+                currentSectionTitle.textContent = targetSection.querySelector('h2') ? targetSection.querySelector('h2').textContent : sectionId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+            // Special handling for sections that need data refresh
+            if (sectionId === 'menu-management') {
+                renderMenuItems();
+            } else if (sectionId === 'inventory-management') {
+                renderInventoryItems();
+            } else if (sectionId === 'expenses') {
+                renderExpenses();
+            } else if (sectionId === 'sales') {
+                renderSalesTransactions();
+            }
+        }
+
+        /**
+         * Handles navigation link clicks.
+         * @param {Event} event - The click event.
+         */
+        function handleNavLinkClick(event) {
+            event.preventDefault();
+            const sectionId = event.currentTarget.dataset.section;
+            showSection(sectionId);
+
+            // Update active state for navigation links
+            navLinks.forEach(link => link.classList.remove('active')); // Remove 'active' from all
+            event.currentTarget.classList.add('active'); // Add 'active' to the clicked link
+        }
+
+        // Add event listeners to navigation links
+        navLinks.forEach(link => {
+            link.addEventListener('click', handleNavLinkClick);
+        });
+
+        // --- Menu Management Functions (CRUD) ---
+
+        /**
+         * Renders the menu items in the table. (READ operation)
+         */
+        function renderMenuItems() {
+            menuItemsTableBody.innerHTML = ''; // Clear existing rows
+            if (menuItems.length === 0) {
+                menuItemsTableBody.innerHTML = `<tr><td colspan="5" class="table-empty-state">No menu items added yet.</td></tr>`;
+                return;
+            }
+            menuItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="font-medium">${item.id}</td>
+                    <td class="text-gray">${item.name}</td>
+                    <td class="text-gray">${item.category}</td>
+                    <td class="text-gray">$${item.price.toFixed(2)}</td>
+                    <td class="table-actions">
+                        <button onclick="editMenuItem('${item.id}')" class="edit">Edit</button>
+                        <button onclick="deleteMenuItem('${item.id}')" class="delete">Delete</button>
+                    </td>
+                `;
+                menuItemsTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Handles form submission for adding/editing menu items. (CREATE/UPDATE operation)
+         * @param {Event} event - The form submit event.
+         */
+        menuForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const id = menuItemIdInput.value;
+            const name = itemNameInput.value.trim();
+            const price = parseFloat(itemPriceInput.value);
+            const category = itemCategoryInput.value.trim();
+
+            if (!name || isNaN(price) || price <= 0 || !category) {
+                showMessageBox('Please fill in all fields correctly for menu item.');
+                return;
+            }
+
+            if (id) {
+                // Update existing item
+                const index = menuItems.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    menuItems[index] = { id, name, price, category };
+                    showMessageBox('Menu item updated successfully!');
+                } else {
+                    showMessageBox('Error: Menu item not found for update.');
+                }
+            } else {
+                // Add new item
+                const newItem = {
+                    id: generateId(),
+                    name,
+                    price,
+                    category
+                };
+                menuItems.push(newItem);
+                showMessageBox('New menu item added successfully!');
+            }
+
+            // Clear form and reset for new entry
+            menuForm.reset();
+            menuItemIdInput.value = '';
+            cancelMenuEditBtn.classList.add('hidden');
+            renderMenuItems();
+        });
+
+        /**
+         * Populates the form with data for editing a menu item. (READ for EDIT)
+         * @param {string} id - The ID of the menu item to edit.
+         */
+        window.editMenuItem = (id) => {
+            const itemToEdit = menuItems.find(item => item.id === id);
+            if (itemToEdit) {
+                menuItemIdInput.value = itemToEdit.id;
+                itemNameInput.value = itemToEdit.name;
+                itemPriceInput.value = itemToEdit.price;
+                itemCategoryInput.value = itemToEdit.category;
+                cancelMenuEditBtn.classList.remove('hidden');
+                itemNameInput.focus(); // Focus on the first input for convenience
+            } else {
+                showMessageBox('Menu item not found for editing.');
+            }
+        };
+
+        /**
+         * Cancels the current menu item edit operation and clears the form.
+         */
+        cancelMenuEditBtn.addEventListener('click', () => {
+            menuForm.reset();
+            menuItemIdInput.value = '';
+            cancelMenuEditBtn.classList.add('hidden');
+        });
+
+        /**
+         * Deletes a menu item. (DELETE operation)
+         * @param {string} id - The ID of the menu item to delete.
+         */
+        window.deleteMenuItem = (id) => {
+            const initialLength = menuItems.length;
+            menuItems = menuItems.filter(item => item.id !== id);
+            if (menuItems.length < initialLength) {
+                showMessageBox('Menu item deleted successfully!');
+                renderMenuItems();
+            } else {
+                showMessageBox('Error: Menu item not found for deletion.');
+            }
+        };
+
+        // --- Inventory Management Functions (CRUD) ---
+
+        /**
+         * Renders the inventory items in the table. (READ operation)
+         */
+        function renderInventoryItems() {
+            inventoryItemsTableBody.innerHTML = ''; // Clear existing rows
+            if (inventoryItems.length === 0) {
+                inventoryItemsTableBody.innerHTML = `<tr><td colspan="7" class="table-empty-state">No inventory items added yet.</td></tr>`;
+                return;
+            }
+            inventoryItems.forEach(item => {
+                const totalValue = item.quantity * item.costPerUnit;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="font-medium">${item.id}</td>
+                    <td class="text-gray">${item.name}</td>
+                    <td class="text-gray">${item.quantity.toFixed(2)}</td>
+                    <td class="text-gray">${item.unit}</td>
+                    <td class="text-gray">$${item.costPerUnit.toFixed(2)}</td>
+                    <td class="text-gray">$${totalValue.toFixed(2)}</td>
+                    <td class="table-actions">
+                        <button onclick="editInventoryItem('${item.id}')" class="edit">Edit</button>
+                        <button onclick="deleteInventoryItem('${item.id}')" class="delete">Delete</button>
+                    </td>
+                `;
+                inventoryItemsTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Handles form submission for adding/editing inventory items. (CREATE/UPDATE operation)
+         * @param {Event} event - The form submit event.
+         */
+        inventoryForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const id = ingredientIdInput.value;
+            const name = ingredientNameInput.value.trim();
+            const quantity = parseFloat(ingredientQuantityInput.value);
+            const unit = ingredientUnitInput.value.trim();
+            const costPerUnit = parseFloat(ingredientCostPerUnitInput.value);
+
+            if (!name || isNaN(quantity) || quantity < 0 || !unit || isNaN(costPerUnit) || costPerUnit < 0) {
+                showMessageBox('Please fill in all fields correctly for inventory item.');
+                return;
+            }
+
+            if (id) {
+                // Update existing item
+                const index = inventoryItems.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    inventoryItems[index] = { id, name, quantity, unit, costPerUnit };
+                    showMessageBox('Inventory item updated successfully!');
+                } else {
+                    showMessageBox('Error: Inventory item not found for update.');
+                }
+            } else {
+                // Add new item
+                const newItem = {
+                    id: generateId(),
+                    name,
+                    quantity,
+                    unit,
+                    costPerUnit
+                };
+                inventoryItems.push(newItem);
+                showMessageBox('New inventory item added successfully!');
+            }
+
+            // Clear form and reset for new entry
+            inventoryForm.reset();
+            ingredientIdInput.value = '';
+            cancelIngredientEditBtn.classList.add('hidden');
+            renderInventoryItems();
+        });
+
+        /**
+         * Populates the form with data for editing an inventory item. (READ for EDIT)
+         * @param {string} id - The ID of the inventory item to edit.
+         */
+        window.editInventoryItem = (id) => {
+            const itemToEdit = inventoryItems.find(item => item.id === id);
+            if (itemToEdit) {
+                ingredientIdInput.value = itemToEdit.id;
+                ingredientNameInput.value = itemToEdit.name;
+                ingredientQuantityInput.value = itemToEdit.quantity;
+                ingredientUnitInput.value = itemToEdit.unit;
+                ingredientCostPerUnitInput.value = itemToEdit.costPerUnit;
+                cancelIngredientEditBtn.classList.remove('hidden');
+                ingredientNameInput.focus();
+            } else {
+                showMessageBox('Inventory item not found for editing.');
+            }
+        };
+
+        /**
+         * Cancels the current inventory item edit operation and clears the form.
+         */
+        cancelIngredientEditBtn.addEventListener('click', () => {
+            inventoryForm.reset();
+            ingredientIdInput.value = '';
+            cancelIngredientEditBtn.classList.add('hidden');
+        });
+
+        /**
+         * Deletes an inventory item. (DELETE operation)
+         * @param {string} id - The ID of the inventory item to delete.
+         */
+        window.deleteInventoryItem = (id) => {
+            const initialLength = inventoryItems.length;
+            inventoryItems = inventoryItems.filter(item => item.id !== id);
+            if (inventoryItems.length < initialLength) {
+                showMessageBox('Inventory item deleted successfully!');
+                renderInventoryItems();
+            } else {
+                showMessageBox('Error: Inventory item not found for deletion.');
+            }
+        };
+
+        // --- Expenses Management Functions (CRUD) ---
+
+        /**
+         * Renders the expenses in the table. (READ operation)
+         */
+        function renderExpenses() {
+            expensesTableBody.innerHTML = ''; // Clear existing rows
+            if (expenses.length === 0) {
+                expensesTableBody.innerHTML = `<tr><td colspan="5" class="table-empty-state">No expenses added yet.</td></tr>`;
+                return;
+            }
+            expenses.forEach(expense => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="font-medium">${expense.date}</td>
+                    <td class="text-gray">${expense.category}</td>
+                    <td class="text-gray">${expense.description}</td>
+                    <td class="text-gray">$${expense.amount.toFixed(2)}</td>
+                    <td class="table-actions">
+                        <button onclick="editExpense('${expense.id}')" class="edit">Edit</button>
+                        <button onclick="deleteExpense('${expense.id}')" class="delete">Delete</button>
+                    </td>
+                `;
+                expensesTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Handles form submission for adding/editing expenses. (CREATE/UPDATE operation)
+         * @param {Event} event - The form submit event.
+         */
+        expenseForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const id = expenseIdInput.value;
+            const date = expenseDateInput.value;
+            const category = expenseCategoryInput.value.trim();
+            const description = expenseDescriptionInput.value.trim();
+            const amount = parseFloat(expenseAmountInput.value);
+
+            if (!date || !category || !description || isNaN(amount) || amount <= 0) {
+                showMessageBox('Please fill in all fields correctly for expense.');
+                return;
+            }
+
+            if (id) {
+                // Update existing expense
+                const index = expenses.findIndex(exp => exp.id === id);
+                if (index !== -1) {
+                    expenses[index] = { id, date, category, description, amount };
+                    showMessageBox('Expense updated successfully!');
+                } else {
+                    showMessageBox('Error: Expense not found for update.');
+                }
+            } else {
+                // Add new expense
+                const newExpense = {
+                    id: generateId(),
+                    date,
+                    category,
+                    description,
+                    amount
+                };
+                expenses.push(newExpense);
+                showMessageBox('New expense added successfully!');
+            }
+
+            // Clear form and reset for new entry
+            expenseForm.reset();
+            expenseIdInput.value = '';
+            cancelExpenseEditBtn.classList.add('hidden');
+            renderExpenses();
+        });
+
+        /**
+         * Populates the form with data for editing an expense. (READ for EDIT)
+         * @param {string} id - The ID of the expense to edit.
+         */
+        window.editExpense = (id) => {
+            const expenseToEdit = expenses.find(exp => exp.id === id);
+            if (expenseToEdit) {
+                expenseIdInput.value = expenseToEdit.id;
+                expenseDateInput.value = expenseToEdit.date;
+                expenseCategoryInput.value = expenseToEdit.category;
+                expenseDescriptionInput.value = expenseToEdit.description;
+                expenseAmountInput.value = expenseToEdit.amount;
+                cancelExpenseEditBtn.classList.remove('hidden');
+                expenseDateInput.focus();
+            } else {
+                showMessageBox('Expense not found for editing.');
+            }
+        };
+
+        /**
+         * Cancels the current expense edit operation and clears the form.
+         */
+        cancelExpenseEditBtn.addEventListener('click', () => {
+            expenseForm.reset();
+            expenseIdInput.value = '';
+            cancelExpenseEditBtn.classList.add('hidden');
+        });
+
+        /**
+         * Deletes an expense. (DELETE operation)
+         * @param {string} id - The ID of the expense to delete.
+         */
+        window.deleteExpense = (id) => {
+            const initialLength = expenses.length;
+            expenses = expenses.filter(exp => exp.id !== id);
+            if (expenses.length < initialLength) {
+                showMessageBox('Expense deleted successfully!');
+                renderExpenses();
+            } else {
+                showMessageBox('Error: Expense not found for deletion.');
+            }
+        };
+
+        // --- Sales Management Functions ---
+
+        /**
+         * Renders the sales transactions in the table. (READ operation)
+         */
+        function renderSalesTransactions() {
+            salesTransactionsTableBody.innerHTML = ''; // Clear existing rows
+            if (salesTransactions.length === 0) {
+                salesTransactionsTableBody.innerHTML = `<tr><td colspan="9" class="table-empty-state">No sales transactions yet.</td></tr>`;
+                return;
+            }
+            salesTransactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="font-medium">${transaction.id}</td>
+                    <td class="text-gray">${transaction.date}</td>
+                    <td class="text-gray">${transaction.itemSold}</td>
+                    <td class="text-gray">${transaction.quantity}</td>
+                    <td class="text-gray">$${transaction.amount.toFixed(2)}</td>
+                    <td class="text-gray">$${transaction.costOfGoods.toFixed(2)}</td>
+                    <td class="text-gray">$${transaction.profit.toFixed(2)}</td>
+                    <td class="text-gray">${transaction.paymentMethod}</td>
+                    <td class="table-actions">
+                        <button class="view-details">View Details</button>
+                    </td>
+                `;
+                salesTransactionsTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Simulates a sale for a given menu item and quantity,
+         * deducting ingredients from inventory and calculating cost.
+         * @param {string} menuItemId - The ID of the menu item sold.
+         * @param {number} quantitySold - The quantity of the menu item sold.
+         */
+        function simulateSale(menuItemId, quantitySold = 1) {
+            const menuItem = menuItems.find(item => item.id === menuItemId);
+            if (!menuItem) {
+                showMessageBox('Error: Menu item not found for sale simulation.');
+                return;
+            }
+
+            const recipe = recipes[menuItemId];
+            if (!recipe || recipe.length === 0) {
+                showMessageBox(`Warning: No recipe defined for ${menuItem.name}. Inventory will not be deducted.`);
+                // Still record the sale, but with 0 cost of goods
+                recordSale(menuItem.name, quantitySold, menuItem.price * quantitySold, 0);
+                return;
+            }
+
+            let totalCostOfGoods = 0;
+            let inventoryDeductionSuccessful = true;
+            let insufficientStockMessages = [];
+
+            // First, check if there's enough stock for all ingredients
+            for (const recipeIngredient of recipe) {
+                const ingredient = inventoryItems.find(inv => inv.id === recipeIngredient.ingredientId);
+                if (!ingredient) {
+                    inventoryDeductionSuccessful = false;
+                    insufficientStockMessages.push(`Ingredient '${recipeIngredient.ingredientId}' not found in inventory.`);
+                    break;
+                }
+                const requiredQuantity = recipeIngredient.quantity * quantitySold;
+                if (ingredient.quantity < requiredQuantity) {
+                    inventoryDeductionSuccessful = false;
+                    insufficientStockMessages.push(`Insufficient stock for ${ingredient.name}. Needed: ${requiredQuantity.toFixed(2)} ${ingredient.unit}, Available: ${ingredient.quantity.toFixed(2)} ${ingredient.unit}.`);
+                }
+            }
+
+            if (!inventoryDeductionSuccessful) {
+                showMessageBox('Sale failed due to insufficient inventory:\n' + insufficientStockMessages.join('\n'));
+                return;
+            }
+
+            // If stock is sufficient, proceed with deduction and cost calculation
+            for (const recipeIngredient of recipe) {
+                const ingredient = inventoryItems.find(inv => inv.id === recipeIngredient.ingredientId);
+                const requiredQuantity = recipeIngredient.quantity * quantitySold;
+
+                ingredient.quantity -= requiredQuantity;
+                totalCostOfGoods += requiredQuantity * ingredient.costPerUnit;
+            }
+
+            const saleAmount = menuItem.price * quantitySold;
+            const profit = saleAmount - totalCostOfGoods;
+
+            recordSale(menuItem.name, quantitySold, saleAmount, totalCostOfGoods, profit);
+            showMessageBox(`Sale of ${quantitySold} x ${menuItem.name} successful! Cost of Goods: $${totalCostOfGoods.toFixed(2)}`);
+            renderInventoryItems(); // Update inventory display
+            renderSalesTransactions(); // Update sales display
+        }
+
+        /**
+         * Records a sale transaction.
+         * @param {string} itemSold - Name of the item sold.
+         * @param {number} quantity - Quantity sold.
+         * @param {number} amount - Total sale amount.
+         * @param {number} costOfGoods - Total cost of ingredients for this sale.
+         * @param {number} profit - Profit from this sale.
+         */
+        function recordSale(itemSold, quantity, amount, costOfGoods, profit) {
+            const newTransaction = {
+                id: generateId(),
+                date: new Date().toISOString().split('T')[0], // Current date
+                itemSold,
+                quantity,
+                amount,
+                costOfGoods,
+                profit,
+                paymentMethod: 'Simulated' // Default for simulated sales
+            };
+            salesTransactions.push(newTransaction);
+        }
+
+        // Event listener for simulate sale button
+        simulateSaleBtn.addEventListener('click', () => {
+            // Simulate selling one Samosa (m5)
+            simulateSale('m5', 1);
+        });
+
+
+        // Initialize: Show dashboard and render relevant sections on load
+        window.onload = () => {
+            showSection('dashboard');
+            document.querySelector('.nav-link[data-section="dashboard"]').classList.add('active');
+            renderMenuItems();
+            renderInventoryItems();
+            renderExpenses();
+            renderSalesTransactions();
+        };
+
+    </script>
+</body>
+</html>

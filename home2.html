@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Management System</title>
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 256px; /* w-64 */
+            background-color: #1f2937; /* bg-gray-800 */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 16px; /* p-4 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+        }
+        .sidebar-title {
+            font-size: 2rem; /* text-2xl */
+            font-weight: 700; /* font-bold */
+            margin-bottom: 32px; /* mb-8 */
+            text-align: center;
+            color: #fb923c; /* text-orange-400 */
+        }
+        .sidebar-nav {
+            flex: 1; /* flex-1 */
+        }
+        .sidebar-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            space-y: 8px; /* Equivalent to space-y-2 for li elements */
+        }
+        .sidebar-nav li {
+            margin-bottom: 8px; /* space-y-2 equivalent */
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px; /* p-3 */
+            border-radius: 8px; /* rounded-lg */
+            transition-property: background-color, color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+        }
+        .nav-link:hover {
+            background-color: #374151; /* hover:bg-gray-700 */
+        }
+        .nav-link svg {
+            width: 20px; /* w-5 */
+            height: 20px; /* h-5 */
+            margin-right: 12px; /* mr-3 */
+        }
+        .nav-link.active {
+            background-color: #374151; /* Active state background */
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1; /* flex-1 */
+            display: flex;
+            flex-direction: column;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .header {
+            background-color: white;
+            padding: 16px; /* p-4 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-title {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .header-user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px; /* space-x-4 */
+        }
+        .header-user-info span {
+            color: #4b5563; /* text-gray-600 */
+        }
+        .header-settings-btn {
+            padding: 8px; /* p-2 */
+            border-radius: 9999px; /* rounded-full */
+            background-color: #e5e7eb; /* bg-gray-200 */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+        }
+        .header-settings-btn:hover {
+            background-color: #d1d5db; /* hover:bg-gray-300 */
+        }
+        .header-settings-btn svg {
+            width: 24px; /* w-6 */
+            height: 24px; /* h-6 */
+            color: #374151; /* text-gray-700 */
+        }
+
+        /* Content Sections */
+        .content-area {
+            flex: 1; /* flex-1 */
+            padding: 24px; /* p-6 */
+            overflow-y: auto;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* grid-cols-1 */
+            gap: 24px; /* gap-6 */
+        }
+        @media (min-width: 768px) { /* md: */
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr); /* md:grid-cols-2 */
+            }
+        }
+        @media (min-width: 1024px) { /* lg: */
+            .dashboard-grid {
+                grid-template-columns: repeat(4, 1fr); /* lg:grid-cols-4 */
+            }
+        }
+        .card {
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-text-sm {
+            color: #6b7280; /* text-gray-500 */
+            font-size: 0.875rem; /* text-sm */
+        }
+        .card-text-bold {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .card-icon {
+            width: 40px; /* w-10 */
+            height: 40px; /* h-10 */
+        }
+        .card-icon.green { color: #22c55e; } /* text-green-500 */
+        .card-icon.blue { color: #3b82f6; } /* text-blue-500 */
+        .card-icon.red { color: #ef4444; } /* text-red-500 */
+        .card-icon.purple { color: #a855f7; } /* text-purple-500 */
+
+        .sales-overview-chart {
+            margin-top: 32px; /* mt-8 */
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        }
+        .sales-overview-chart h3 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .chart-placeholder {
+            height: 256px; /* h-64 */
+            background-color: #f9fafb; /* bg-gray-50 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af; /* text-gray-400 */
+            border-radius: 6px; /* rounded-md */
+            border: 1px dashed #d1d5db; /* border border-dashed border-gray-300 */
+        }
+
+        /* General Section Styling */
+        h2 {
+            font-size: 2.25rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 24px; /* mb-6 */
+        }
+        .section-card {
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        }
+        .section-card h3 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .add-button {
+            background-color: #2563eb; /* bg-blue-600 */
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 8px 16px; /* py-2 px-4 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            margin-bottom: 16px; /* mb-4 */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .add-button:hover {
+            background-color: #1d4ed8; /* hover:bg-blue-700 */
+        }
+
+        /* Table Styling */
+        .table-container {
+            overflow-x: auto;
+        }
+        .data-table {
+            min-width: 100%; /* min-w-full */
+            border-collapse: collapse;
+            border-spacing: 0;
+            divide-y: 1px solid #e5e7eb; /* divide-y divide-gray-200 */
+        }
+        .data-table thead {
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .data-table th {
+            padding: 12px 24px; /* px-6 py-3 */
+            text-align: left;
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 500; /* font-medium */
+            color: #6b7280; /* text-gray-500 */
+            text-transform: uppercase;
+            letter-spacing: 0.05em; /* tracking-wider */
+        }
+        .data-table th:first-child {
+            border-top-left-radius: 8px; /* rounded-tl-lg */
+        }
+        .data-table th:last-child {
+            border-top-right-radius: 8px; /* rounded-tr-lg */
+        }
+        .data-table tbody {
+            background-color: white;
+            divide-y: 1px solid #e5e7eb; /* divide-y divide-gray-200 */
+        }
+        .data-table td {
+            padding: 16px 24px; /* px-6 py-4 */
+            white-space: nowrap; /* whitespace-nowrap */
+            font-size: 0.875rem; /* text-sm */
+        }
+        .data-table td.font-medium {
+            font-weight: 500; /* font-medium */
+            color: #1f2937; /* text-gray-900 */
+        }
+        .data-table td.text-gray {
+            color: #6b7280; /* text-gray-500 */
+        }
+        .status-badge {
+            padding: 2px 8px; /* px-2 inline-flex */
+            font-size: 0.75rem; /* text-xs */
+            line-height: 1.25rem; /* leading-5 */
+            font-weight: 600; /* font-semibold */
+            border-radius: 9999px; /* rounded-full */
+        }
+        .status-badge.preparing {
+            background-color: #fef3c7; /* bg-yellow-100 */
+            color: #b45309; /* text-yellow-800 */
+        }
+        .status-badge.ready {
+            background-color: #d1fae5; /* bg-green-100 */
+            color: #065f46; /* text-green-800 */
+        }
+        .table-actions button {
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition-property: color;
+            transition-duration: 200ms;
+        }
+        .table-actions button.edit {
+            color: #4f46e5; /* text-indigo-600 */
+            margin-right: 8px; /* mr-2 */
+        }
+        .table-actions button.edit:hover {
+            color: #4338ca; /* hover:text-indigo-900 */
+        }
+        .table-actions button.delete, .table-actions button.cancel {
+            color: #dc2626; /* text-red-600 */
+        }
+        .table-actions button.delete:hover, .table-actions button.cancel:hover {
+            color: #991b1b; /* hover:text-red-900 */
+        }
+        .table-actions button.view-details {
+            color: #2563eb; /* text-blue-600 */
+        }
+        .table-actions button.view-details:hover {
+            color: #1d4ed8; /* hover:text-blue-900 */
+        }
+        .table-actions button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Reports Section Buttons */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* grid-cols-1 */
+            gap: 16px; /* gap-4 */
+        }
+        @media (min-width: 768px) { /* md: */
+            .reports-grid {
+                grid-template-columns: repeat(2, 1fr); /* md:grid-cols-2 */
+            }
+        }
+        .report-button {
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 12px 24px; /* py-3 px-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .report-button.green { background-color: #16a34a; } /* bg-green-600 */
+        .report-button.green:hover { background-color: #15803d; } /* hover:bg-green-700 */
+        .report-button.yellow { background-color: #ca8a04; } /* bg-yellow-600 */
+        .report-button.yellow:hover { background-color: #a16207; } /* hover:bg-yellow-700 */
+        .report-button.purple { background-color: #9333ea; } /* bg-purple-600 */
+        .report-button.purple:hover { background-color: #7e22ce; } /* hover:bg-purple-700 */
+        .report-button.teal { background-color: #0d9488; } /* bg-teal-600 */
+        .report-button.teal:hover { background-color: #0f766e; } /* hover:bg-teal-700 */
+
+        /* Menu Management Form */
+        .menu-form {
+            margin-bottom: 24px; /* mb-6 */
+            padding: 16px; /* p-4 */
+            border: 1px solid #e5e7eb; /* border border-gray-200 */
+            border-radius: 8px; /* rounded-lg */
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .menu-form h4 {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 12px; /* mb-3 */
+            color: #374151; /* text-gray-700 */
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* grid-cols-1 */
+            gap: 16px; /* gap-4 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        @media (min-width: 768px) { /* md: */
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr); /* md:grid-cols-2 */
+            }
+        }
+        .form-group {
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+            color: #374151; /* text-gray-700 */
+            margin-bottom: 4px;
+        }
+        .form-group input {
+            display: block;
+            width: 100%; /* w-full */
+            margin-top: 4px; /* mt-1 */
+            border-radius: 6px; /* rounded-md */
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+            padding: 8px; /* p-2 */
+            font-size: 0.875rem; /* sm:text-sm */
+        }
+        .form-group input:focus {
+            border-color: #4f46e5; /* focus:border-indigo-500 */
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* focus:ring-indigo-500 */
+        }
+        .form-buttons {
+            display: flex;
+            gap: 8px; /* space-x-2 */
+        }
+        .form-buttons button {
+            font-weight: 700; /* font-bold */
+            padding: 8px 16px; /* py-2 px-4 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .form-buttons button[type="submit"] {
+            background-color: #4f46e5; /* bg-indigo-600 */
+            color: white;
+        }
+        .form-buttons button[type="submit"]:hover {
+            background-color: #4338ca; /* hover:bg-indigo-700 */
+        }
+        .form-buttons button#cancel-edit-btn {
+            background-color: #9ca3af; /* bg-gray-400 */
+            color: white;
+        }
+        .form-buttons button#cancel-edit-btn:hover {
+            background-color: #6b7280; /* hover:bg-gray-500 */
+        }
+        .form-buttons button.hidden {
+            display: none;
+        }
+
+        /* Message Box */
+        .message-box {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(31, 41, 55, 0.75); /* bg-gray-800 bg-opacity-75 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .message-box.hidden {
+            display: none;
+        }
+        .message-box-content {
+            background-color: white;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-xl */
+            max-width: 384px; /* max-w-sm */
+            width: 100%;
+            text-align: center;
+        }
+        .message-box-text {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .message-box-ok-btn {
+            background-color: #4f46e5; /* bg-indigo-600 */
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 8px 16px; /* py-2 px-4 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition-property: background-color; /* transition-colors */
+            transition-duration: 200ms; /* duration-200 */
+            border: none;
+            cursor: pointer;
+        }
+        .message-box-ok-btn:hover {
+            background-color: #4338ca; /* hover:bg-indigo-700 */
+        }
+
+        /* Table Empty State */
+        .table-empty-state {
+            padding: 16px 24px; /* px-6 py-4 */
+            text-align: center;
+            color: #6b7280; /* text-gray-500 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-title">
+            DineFlow
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li>
+                    <a href="#" data-section="dashboard" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="kitchen" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Kitchen
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="sales" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Sales
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="expenses" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                        Expenses
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="reports" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="menu-management" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Menu Management
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="header">
+            <h1 id="current-section-title" class="header-title">Dashboard</h1>
+            <div class="header-user-info">
+                <span>Welcome, Admin!</span>
+                <button class="header-settings-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div id="content-area" class="content-area">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="dashboard-grid">
+                    <!-- Card 1: Total Sales -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">Total Sales</p>
+                            <p class="card-text-bold">$12,450</p>
+                        </div>
+                        <svg class="card-icon green" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.592 1L21 12h-3.812c-.622 1.043-1.554 1.795-2.67 2.234l-1.355 1.355C12.71 17.065 11.2 17.5 9.75 17.5H4.25c-1.24 0-2.25-1.01-2.25-2.25v-2.5c0-1.24 1.01-2.25 2.25-2.25h5.5c1.45 0 2.96-.435 4.125-1.25l1.355-1.355C14.462 7.105 15.394 6.353 16.016 5.31H21l-5.408-2.704C14.08 2.402 13.11 2 12 2z"></path></svg>
+                    </div>
+                    <!-- Card 2: New Orders -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">New Orders</p>
+                            <p class="card-text-bold">45</p>
+                        </div>
+                        <svg class="card-icon blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    </div>
+                    <!-- Card 3: Expenses -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">Total Expenses</p>
+                            <p class="card-text-bold">$3,120</p>
+                        </div>
+                        <svg class="card-icon red" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                    </div>
+                    <!-- Card 4: Customers Served -->
+                    <div class="card">
+                        <div>
+                            <p class="card-text-sm">Customers Served</p>
+                            <p class="card-text-bold">870</p>
+                        </div>
+                        <svg class="card-icon purple" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h2a2 2 0 002-2V7a2 2 0 00-2-2h-3V3a1 1 0 00-1-1H8a1 1 0 00-1 1v2H4a2 2 0 00-2 2v11a2 2 0 002 2h2l3 2 3-2h3"></path></svg>
+                    </div>
+                </div>
+
+                <div class="sales-overview-chart">
+                    <h3>Sales Overview (Last 7 Days)</h3>
+                    <!-- Placeholder for a chart -->
+                    <div class="chart-placeholder">
+                        Graph/Chart Placeholder
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kitchen Section -->
+            <section id="kitchen" class="content-section">
+                <h2>Kitchen Management</h2>
+                <div class="section-card">
+                    <h3>Current Orders</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Sample Kitchen Orders -->
+                                <tr>
+                                    <td class="font-medium">#ORD001</td>
+                                    <td class="text-gray">Spaghetti Carbonara</td>
+                                    <td class="text-gray">2</td>
+                                    <td>
+                                        <span class="status-badge preparing">
+                                            Preparing
+                                        </span>
+                                    </td>
+                                    <td class="table-actions">
+                                        <button class="edit">Mark Ready</button>
+                                        <button class="delete">Cancel</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-medium">#ORD002</td>
+                                    <td class="text-gray">Grilled Salmon</td>
+                                    <td class="text-gray">1</td>
+                                    <td>
+                                        <span class="status-badge ready">
+                                            Ready
+                                        </span>
+                                    </td>
+                                    <td class="table-actions">
+                                        <button class="edit" disabled>Mark Ready</button>
+                                        <button class="delete">Cancel</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales Section -->
+            <section id="sales" class="content-section">
+                <h2>Sales Management</h2>
+                <div class="section-card">
+                    <h3>Recent Transactions</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Sample Sales Transactions -->
+                                <tr>
+                                    <td class="font-medium">#TRN001</td>
+                                    <td class="text-gray">2025-07-20</td>
+                                    <td class="text-gray">$55.00</td>
+                                    <td class="text-gray">Credit Card</td>
+                                    <td class="table-actions">
+                                        <button class="view-details">View Details</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-medium">#TRN002</td>
+                                    <td class="text-gray">2025-07-19</td>
+                                    <td class="text-gray">$32.50</td>
+                                    <td class="table-actions">Cash</td>
+                                    <td class="table-actions">
+                                        <button class="view-details">View Details</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses" class="content-section">
+                <h2>Expenses Management</h2>
+                <div class="section-card">
+                    <h3>Recent Expenses</h3>
+                    <button id="add-expense-btn" class="add-button">
+                        Add New Expense
+                    </button>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Sample Expenses -->
+                                <tr>
+                                    <td class="font-medium">2025-07-18</td>
+                                    <td class="text-gray">Ingredients</td>
+                                    <td class="text-gray">Fresh Vegetables</td>
+                                    <td class="text-gray">$150.00</td>
+                                    <td class="table-actions">
+                                        <button class="edit">Edit</button>
+                                        <button class="delete">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-medium">2025-07-15</td>
+                                    <td class="text-gray">Utilities</td>
+                                    <td class="text-gray">Electricity Bill</td>
+                                    <td class="text-gray">$300.00</td>
+                                    <td class="table-actions">
+                                        <button class="edit">Edit</button>
+                                        <button class="delete">Delete</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports" class="content-section">
+                <h2>Reports</h2>
+                <div class="section-card">
+                    <h3>Generate Reports</h3>
+                    <div class="reports-grid">
+                        <button class="report-button green">
+                            Sales Report
+                        </button>
+                        <button class="report-button yellow">
+                            Expense Report
+                        </button>
+                        <button class="report-button purple">
+                            Inventory Report
+                        </button>
+                        <button class="report-button teal">
+                            Custom Report
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Menu Management Section (CRUD Example) -->
+            <section id="menu-management" class="content-section">
+                <h2>Menu Management</h2>
+                <div class="section-card">
+                    <h3>Menu Items</h3>
+
+                    <!-- Add New Item Form -->
+                    <form id="menu-form" class="menu-form">
+                        <h4 class="text-lg font-semibold mb-3 text-gray-700">Add/Edit Menu Item</h4>
+                        <input type="hidden" id="menu-item-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="item-name">Item Name</label>
+                                <input type="text" id="item-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="item-price">Price ($)</label>
+                                <input type="number" id="item-price" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-category">Category</label>
+                            <input type="text" id="item-category" required>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="submit">
+                                Save Item
+                            </button>
+                            <button type="button" id="cancel-edit-btn" class="hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Menu Items List -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menu-items-table-body">
+                                <!-- Menu items will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Custom Message Box -->
+    <div id="message-box" class="message-box hidden">
+        <div class="message-box-content">
+            <p id="message-text" class="message-box-text"></p>
+            <button id="message-ok-btn" class="message-box-ok-btn">
+                OK
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // In-memory data store for menu items (for demonstration of CRUD)
+        let menuItems = [
+            { id: 'm1', name: 'Classic Burger', category: 'Main Course', price: 12.99 },
+            { id: 'm2', name: 'Caesar Salad', category: 'Appetizer', price: 8.50 },
+            { id: 'm3', name: 'Chocolate Lava Cake', category: 'Dessert', price: 7.00 },
+            { id: 'm4', name: 'Orange Juice', category: 'Beverage', price: 3.50 }
+        ];
+
+        // Function to generate a unique ID (simple for demo)
+        const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
+
+        // DOM Elements
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+        const currentSectionTitle = document.getElementById('current-section-title');
+        const menuForm = document.getElementById('menu-form');
+        const menuItemIdInput = document.getElementById('menu-item-id');
+        const itemNameInput = document.getElementById('item-name');
+        const itemPriceInput = document.getElementById('item-price');
+        const itemCategoryInput = document.getElementById('item-category');
+        const menuItemsTableBody = document.getElementById('menu-items-table-body');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+        // Message Box Elements
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const messageOkBtn = document.getElementById('message-ok-btn');
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+        }
+
+        // Event listener for the OK button in the message box
+        messageOkBtn.addEventListener('click', () => {
+            messageBox.classList.add('hidden');
+        });
+
+        /**
+         * Hides all content sections.
+         */
+        function hideAllSections() {
+            contentSections.forEach(section => {
+                section.classList.add('hidden');
+                section.classList.remove('active');
+            });
+        }
+
+        /**
+         * Shows a specific content section and updates the title.
+         * @param {string} sectionId - The ID of the section to show.
+         */
+        function showSection(sectionId) {
+            hideAllSections();
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                targetSection.classList.add('active');
+                // Update title based on the section's h2 or a formatted ID
+                currentSectionTitle.textContent = targetSection.querySelector('h2') ? targetSection.querySelector('h2').textContent : sectionId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+            // Special handling for menu-management to refresh list
+            if (sectionId === 'menu-management') {
+                renderMenuItems();
+            }
+        }
+
+        /**
+         * Handles navigation link clicks.
+         * @param {Event} event - The click event.
+         */
+        function handleNavLinkClick(event) {
+            event.preventDefault();
+            const sectionId = event.currentTarget.dataset.section;
+            showSection(sectionId);
+
+            // Update active state for navigation links
+            navLinks.forEach(link => link.classList.remove('active')); // Remove 'active' from all
+            event.currentTarget.classList.add('active'); // Add 'active' to the clicked link
+        }
+
+        // Add event listeners to navigation links
+        navLinks.forEach(link => {
+            link.addEventListener('click', handleNavLinkClick);
+        });
+
+        /**
+         * Renders the menu items in the table. (READ operation)
+         */
+        function renderMenuItems() {
+            menuItemsTableBody.innerHTML = ''; // Clear existing rows
+            if (menuItems.length === 0) {
+                menuItemsTableBody.innerHTML = `<tr><td colspan="5" class="table-empty-state">No menu items added yet.</td></tr>`;
+                return;
+            }
+            menuItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="font-medium">${item.id}</td>
+                    <td class="text-gray">${item.name}</td>
+                    <td class="text-gray">${item.category}</td>
+                    <td class="text-gray">$${item.price.toFixed(2)}</td>
+                    <td class="table-actions">
+                        <button onclick="editMenuItem('${item.id}')" class="edit">Edit</button>
+                        <button onclick="deleteMenuItem('${item.id}')" class="delete">Delete</button>
+                    </td>
+                `;
+                menuItemsTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Handles form submission for adding/editing menu items. (CREATE/UPDATE operation)
+         * @param {Event} event - The form submit event.
+         */
+        menuForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const id = menuItemIdInput.value;
+            const name = itemNameInput.value.trim();
+            const price = parseFloat(itemPriceInput.value);
+            const category = itemCategoryInput.value.trim();
+
+            if (!name || isNaN(price) || price <= 0 || !category) {
+                showMessageBox('Please fill in all fields correctly.');
+                return;
+            }
+
+            if (id) {
+                // Update existing item
+                const index = menuItems.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    menuItems[index] = { id, name, price, category };
+                    showMessageBox('Menu item updated successfully!');
+                } else {
+                    showMessageBox('Error: Item not found for update.');
+                }
+            } else {
+                // Add new item
+                const newItem = {
+                    id: generateId(),
+                    name,
+                    price,
+                    category
+                };
+                menuItems.push(newItem);
+                showMessageBox('New menu item added successfully!');
+            }
+
+            // Clear form and reset for new entry
+            menuForm.reset();
+            menuItemIdInput.value = '';
+            cancelEditBtn.classList.add('hidden');
+            renderMenuItems();
+        });
+
+        /**
+         * Populates the form with data for editing a menu item. (READ for EDIT)
+         * @param {string} id - The ID of the menu item to edit.
+         */
+        window.editMenuItem = (id) => {
+            const itemToEdit = menuItems.find(item => item.id === id);
+            if (itemToEdit) {
+                menuItemIdInput.value = itemToEdit.id;
+                itemNameInput.value = itemToEdit.name;
+                itemPriceInput.value = itemToEdit.price;
+                itemCategoryInput.value = itemToEdit.category;
+                cancelEditBtn.classList.remove('hidden');
+                itemNameInput.focus(); // Focus on the first input for convenience
+            } else {
+                showMessageBox('Menu item not found for editing.');
+            }
+        };
+
+        /**
+         * Cancels the current edit operation and clears the form.
+         */
+        cancelEditBtn.addEventListener('click', () => {
+            menuForm.reset();
+            menuItemIdInput.value = '';
+            cancelEditBtn.classList.add('hidden');
+        });
+
+        /**
+         * Deletes a menu item. (DELETE operation)
+         * @param {string} id - The ID of the menu item to delete.
+         */
+        window.deleteMenuItem = (id) => {
+            const initialLength = menuItems.length;
+            menuItems = menuItems.filter(item => item.id !== id);
+            if (menuItems.length < initialLength) {
+                showMessageBox('Menu item deleted successfully!');
+                renderMenuItems();
+            } else {
+                showMessageBox('Error: Menu item not found for deletion.');
+            }
+        };
+
+        // Initialize: Show dashboard and render menu items on load
+        window.onload = () => {
+            showSection('dashboard');
+            document.querySelector('.nav-link[data-section="dashboard"]').classList.add('active');
+            renderMenuItems(); // Initial render of menu items
+        };
+
+    </script>
+</body>
+</html>

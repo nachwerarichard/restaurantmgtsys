@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Management System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-gray-800 text-white flex flex-col p-4 shadow-lg">
+        <div class="text-2xl font-bold mb-8 text-center text-orange-400">
+            DineFlow
+        </div>
+        <nav class="flex-1">
+            <ul class="space-y-2">
+                <li>
+                    <a href="#" data-section="dashboard" class="nav-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="kitchen" class="nav-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Kitchen
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="sales" class="nav-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Sales
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="expenses" class="nav-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                        Expenses
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="reports" class="nav-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="menu-management" class="nav-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Menu Management
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col bg-gray-100 overflow-hidden">
+        <!-- Top Bar -->
+        <header class="bg-white p-4 shadow-md flex items-center justify-between">
+            <h1 id="current-section-title" class="text-2xl font-semibold text-gray-800">Dashboard</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600">Welcome, Admin!</span>
+                <button class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors duration-200">
+                    <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div id="content-area" class="flex-1 p-6 overflow-y-auto">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Card 1: Total Sales -->
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Sales</p>
+                            <p class="text-3xl font-bold text-gray-800">$12,450</p>
+                        </div>
+                        <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.592 1L21 12h-3.812c-.622 1.043-1.554 1.795-2.67 2.234l-1.355 1.355C12.71 17.065 11.2 17.5 9.75 17.5H4.25c-1.24 0-2.25-1.01-2.25-2.25v-2.5c0-1.24 1.01-2.25 2.25-2.25h5.5c1.45 0 2.96-.435 4.125-1.25l1.355-1.355C14.462 7.105 15.394 6.353 16.016 5.31H21l-5.408-2.704C14.08 2.402 13.11 2 12 2z"></path></svg>
+                    </div>
+                    <!-- Card 2: New Orders -->
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">New Orders</p>
+                            <p class="text-3xl font-bold text-gray-800">45</p>
+                        </div>
+                        <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    </div>
+                    <!-- Card 3: Expenses -->
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Expenses</p>
+                            <p class="text-3xl font-bold text-gray-800">$3,120</p>
+                        </div>
+                        <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                    </div>
+                    <!-- Card 4: Customers Served -->
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Customers Served</p>
+                            <p class="text-3xl font-bold text-gray-800">870</p>
+                        </div>
+                        <svg class="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h2a2 2 0 002-2V7a2 2 0 00-2-2h-3V3a1 1 0 00-1-1H8a1 1 0 00-1 1v2H4a2 2 0 00-2 2v11a2 2 0 002 2h2l3 2 3-2h3"></path></svg>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Sales Overview (Last 7 Days)</h3>
+                    <!-- Placeholder for a chart -->
+                    <div class="h-64 bg-gray-50 flex items-center justify-center text-gray-400 rounded-md border border-dashed border-gray-300">
+                        Graph/Chart Placeholder
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kitchen Section -->
+            <section id="kitchen" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Kitchen Management</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Current Orders</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Order ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- Sample Kitchen Orders -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#ORD001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Spaghetti Carbonara</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            Preparing
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-2">Mark Ready</button>
+                                        <button class="text-red-600 hover:text-red-900">Cancel</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#ORD002</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grilled Salmon</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            Ready
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-2 opacity-50 cursor-not-allowed" disabled>Mark Ready</button>
+                                        <button class="text-red-600 hover:text-red-900">Cancel</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales Section -->
+            <section id="sales" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Sales Management</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Recent Transactions</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Transaction ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- Sample Sales Transactions -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#TRN001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-07-20</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$55.00</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Credit Card</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900">View Details</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#TRN002</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-07-19</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$32.50</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Cash</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900">View Details</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Expenses Management</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Recent Expenses</h3>
+                    <button id="add-expense-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md mb-4 transition-colors duration-200">
+                        Add New Expense
+                    </button>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Date</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- Sample Expenses -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">2025-07-18</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Ingredients</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Fresh Vegetables</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$150.00</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
+                                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">2025-07-15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Utilities</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Electricity Bill</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$300.00</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
+                                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Reports</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Generate Reports</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-200">
+                            Sales Report
+                        </button>
+                        <button class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-200">
+                            Expense Report
+                        </button>
+                        <button class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-200">
+                            Inventory Report
+                        </button>
+                        <button class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-200">
+                            Custom Report
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Menu Management Section (CRUD Example) -->
+            <section id="menu-management" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Menu Management</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Menu Items</h3>
+
+                    <!-- Add New Item Form -->
+                    <form id="menu-form" class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <h4 class="text-lg font-semibold mb-3 text-gray-700">Add/Edit Menu Item</h4>
+                        <input type="hidden" id="menu-item-id">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
+                                <input type="text" id="item-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" required>
+                            </div>
+                            <div>
+                                <label for="item-price" class="block text-sm font-medium text-gray-700">Price ($)</label>
+                                <input type="number" id="item-price" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="item-category" class="block text-sm font-medium text-gray-700">Category</label>
+                            <input type="text" id="item-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" required>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
+                                Save Item
+                            </button>
+                            <button type="button" id="cancel-edit-btn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Menu Items List -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menu-items-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Menu items will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Custom Message Box -->
+    <div id="message-box" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <p id="message-text" class="text-lg font-semibold text-gray-800 mb-4"></p>
+            <button id="message-ok-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
+                OK
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // In-memory data store for menu items (for demonstration of CRUD)
+        let menuItems = [
+            { id: 'm1', name: 'Classic Burger', category: 'Main Course', price: 12.99 },
+            { id: 'm2', name: 'Caesar Salad', category: 'Appetizer', price: 8.50 },
+            { id: 'm3', name: 'Chocolate Lava Cake', category: 'Dessert', price: 7.00 },
+            { id: 'm4', name: 'Orange Juice', category: 'Beverage', price: 3.50 }
+        ];
+
+        // Function to generate a unique ID (simple for demo)
+        const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
+
+        // DOM Elements
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+        const currentSectionTitle = document.getElementById('current-section-title');
+        const menuForm = document.getElementById('menu-form');
+        const menuItemIdInput = document.getElementById('menu-item-id');
+        const itemNameInput = document.getElementById('item-name');
+        const itemPriceInput = document.getElementById('item-price');
+        const itemCategoryInput = document.getElementById('item-category');
+        const menuItemsTableBody = document.getElementById('menu-items-table-body');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+        // Message Box Elements
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const messageOkBtn = document.getElementById('message-ok-btn');
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+        }
+
+        // Event listener for the OK button in the message box
+        messageOkBtn.addEventListener('click', () => {
+            messageBox.classList.add('hidden');
+        });
+
+        /**
+         * Hides all content sections.
+         */
+        function hideAllSections() {
+            contentSections.forEach(section => {
+                section.classList.add('hidden');
+                section.classList.remove('active');
+            });
+        }
+
+        /**
+         * Shows a specific content section and updates the title.
+         * @param {string} sectionId - The ID of the section to show.
+         */
+        function showSection(sectionId) {
+            hideAllSections();
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                targetSection.classList.add('active');
+                currentSectionTitle.textContent = targetSection.querySelector('h2') ? targetSection.querySelector('h2').textContent : sectionId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+            // Special handling for menu-management to refresh list
+            if (sectionId === 'menu-management') {
+                renderMenuItems();
+            }
+        }
+
+        /**
+         * Handles navigation link clicks.
+         * @param {Event} event - The click event.
+         */
+        function handleNavLinkClick(event) {
+            event.preventDefault();
+            const sectionId = event.currentTarget.dataset.section;
+            showSection(sectionId);
+
+            // Update active state for navigation links
+            navLinks.forEach(link => link.classList.remove('bg-gray-700'));
+            event.currentTarget.classList.add('bg-gray-700');
+        }
+
+        // Add event listeners to navigation links
+        navLinks.forEach(link => {
+            link.addEventListener('click', handleNavLinkClick);
+        });
+
+        /**
+         * Renders the menu items in the table. (READ operation)
+         */
+        function renderMenuItems() {
+            menuItemsTableBody.innerHTML = ''; // Clear existing rows
+            if (menuItems.length === 0) {
+                menuItemsTableBody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No menu items added yet.</td></tr>`;
+                return;
+            }
+            menuItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${item.price.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="editMenuItem('${item.id}')" class="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
+                        <button onclick="deleteMenuItem('${item.id}')" class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                `;
+                menuItemsTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Handles form submission for adding/editing menu items. (CREATE/UPDATE operation)
+         * @param {Event} event - The form submit event.
+         */
+        menuForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const id = menuItemIdInput.value;
+            const name = itemNameInput.value.trim();
+            const price = parseFloat(itemPriceInput.value);
+            const category = itemCategoryInput.value.trim();
+
+            if (!name || isNaN(price) || price <= 0 || !category) {
+                showMessageBox('Please fill in all fields correctly.');
+                return;
+            }
+
+            if (id) {
+                // Update existing item
+                const index = menuItems.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    menuItems[index] = { id, name, price, category };
+                    showMessageBox('Menu item updated successfully!');
+                } else {
+                    showMessageBox('Error: Item not found for update.');
+                }
+            } else {
+                // Add new item
+                const newItem = {
+                    id: generateId(),
+                    name,
+                    price,
+                    category
+                };
+                menuItems.push(newItem);
+                showMessageBox('New menu item added successfully!');
+            }
+
+            // Clear form and reset for new entry
+            menuForm.reset();
+            menuItemIdInput.value = '';
+            cancelEditBtn.classList.add('hidden');
+            renderMenuItems();
+        });
+
+        /**
+         * Populates the form with data for editing a menu item. (READ for EDIT)
+         * @param {string} id - The ID of the menu item to edit.
+         */
+        window.editMenuItem = (id) => {
+            const itemToEdit = menuItems.find(item => item.id === id);
+            if (itemToEdit) {
+                menuItemIdInput.value = itemToEdit.id;
+                itemNameInput.value = itemToEdit.name;
+                itemPriceInput.value = itemToEdit.price;
+                itemCategoryInput.value = itemToEdit.category;
+                cancelEditBtn.classList.remove('hidden');
+                itemNameInput.focus(); // Focus on the first input for convenience
+            } else {
+                showMessageBox('Menu item not found for editing.');
+            }
+        };
+
+        /**
+         * Cancels the current edit operation and clears the form.
+         */
+        cancelEditBtn.addEventListener('click', () => {
+            menuForm.reset();
+            menuItemIdInput.value = '';
+            cancelEditBtn.classList.add('hidden');
+        });
+
+        /**
+         * Deletes a menu item. (DELETE operation)
+         * @param {string} id - The ID of the menu item to delete.
+         */
+        window.deleteMenuItem = (id) => {
+            const initialLength = menuItems.length;
+            menuItems = menuItems.filter(item => item.id !== id);
+            if (menuItems.length < initialLength) {
+                showMessageBox('Menu item deleted successfully!');
+                renderMenuItems();
+            } else {
+                showMessageBox('Error: Menu item not found for deletion.');
+            }
+        };
+
+        // Initialize: Show dashboard and render menu items on load
+        window.onload = () => {
+            showSection('dashboard');
+            document.querySelector('.nav-link[data-section="dashboard"]').classList.add('bg-gray-700');
+            renderMenuItems(); // Initial render of menu items
+        };
+
+    </script>
+</body>
+</html>

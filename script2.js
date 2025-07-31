@@ -211,16 +211,16 @@ async function showSection(sectionId) {
  */
 async function handleNavLinkClick(event) {
     event.preventDefault();
-    const sectionId = event.currentTarget.dataset.section;
+    const targetElement = event.currentTarget; // Assign to a clearer variable
 
-    // Defensive check: Ensure event.currentTarget is a valid HTMLElement before proceeding
+    // Defensive check: Ensure targetElement is a valid HTMLElement before proceeding
     // This helps prevent the TypeError if for some reason event.currentTarget becomes null or not an element.
-    if (!event.currentTarget || !(event.currentTarget instanceof HTMLElement)) {
-        console.error("Clicked element is not a valid HTML element:", event.currentTarget);
+    if (!targetElement || !(targetElement instanceof HTMLElement)) {
+        console.error("Clicked element is not a valid HTML element:", targetElement);
         return; // Exit the function to prevent the TypeError
     }
 
-    await showSection(sectionId);
+    await showSection(targetElement.dataset.section); // Use targetElement.dataset.section directly
 
     // Update active state for navigation links
     navLinks.forEach(link => {
@@ -229,7 +229,7 @@ async function handleNavLinkClick(event) {
             link.classList.remove('active');
         }
     });
-    event.currentTarget.classList.add('active'); // Add 'active' to the clicked link
+    targetElement.classList.add('active'); // Add 'active' to the clicked link
 }
 
 // Add event listeners to navigation links
@@ -996,7 +996,10 @@ window.deleteMenuItem = async (id) => {
 // Initialize: Show Order Management and render all relevant sections on load
 document.addEventListener('DOMContentLoaded', async () => {
     showSection('order-management'); // Set initial section to Order Management
-    document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
+    const initialNavLink = document.querySelector('.nav-link[data-section="order-management"]');
+    if (initialNavLink) { // Defensive check for initial active class assignment
+        initialNavLink.classList.add('active');
+    }
 
     // Set default dates for date inputs
     const today = getTodayDate();

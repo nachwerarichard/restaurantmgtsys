@@ -1,7 +1,7 @@
 // script.js - Frontend JavaScript for Restaurant Management System
 
 // --- Configuration ---
-const BACKEND_API_URL = 'http://localhost:5000/api'; // Ensure this matches your backend port
+const BACKEND_API_URL = 'https://restaurantmgtsys.onrender.com'; // Ensure this matches your backend port
 
 // --- In-memory state (for current order being built) ---
 let currentOrder = [];

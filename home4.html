@@ -6,12 +6,8 @@
     <title>Restaurant Management System</title>
     <!-- Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel ="stylesheet" href="styles.css"/>
-    <style>
-        .nav-link.active {
-    background-color: #374151; /* Active state background */
-}
-    </style>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
 
@@ -428,7 +424,33 @@
                             <label for="item-category">Category</label>
                             <input type="text" id="item-category" required>
                         </div>
-                        <div class="form-buttons">
+
+                        <!-- NEW: Recipe Management Section -->
+                        <div class="form-card" style="margin-top: 24px;">
+                            <h4>Recipe Ingredients</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="recipe-ingredient-select">Select Ingredient</label>
+                                    <select id="recipe-ingredient-select" class="form-control">
+                                        <!-- Ingredients will be loaded here -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recipe-quantity-used">Quantity Used</label>
+                                    <input type="number" id="recipe-quantity-used" step="0.01" min="0" value="0" class="form-control">
+                                </div>
+                                <button type="button" id="add-recipe-ingredient-btn" class="add-button" style="grid-column: span 2; margin-top: 0;">Add to Recipe</button>
+                            </div>
+
+                            <h5 style="margin-top: 16px; font-size: 1rem; font-weight: 500;">Current Recipe:</h5>
+                            <ul id="current-recipe-list" class="order-list" style="margin-top: 8px;">
+                                <!-- Recipe ingredients will be displayed here -->
+                                <li class="order-list-item">No ingredients added to recipe.</li>
+                            </ul>
+                        </div>
+                        <!-- END NEW: Recipe Management Section -->
+
+                        <div class="form-buttons" style="margin-top: 24px;">
                             <button type="submit">
                                 Save Item
                             </button>
@@ -447,6 +469,7 @@
                                     <th>Name</th>
                                     <th>Category</th>
                                     <th>Price</th>
+                                    <th>Recipe</th> <!-- Added column for recipe overview -->
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -470,7 +493,7 @@
         </div>
     </div>
 
-
-    <script src="script2.js"></script>
+    <!-- Link to external JavaScript file -->
+    <script src="script.js"></script>
 </body>
 </html>

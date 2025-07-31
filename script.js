@@ -1,7 +1,10 @@
 // script.js - Frontend JavaScript for Restaurant Management System
 
 // --- Configuration ---
-const BACKEND_API_URL = 'https://restaurantmgtsys.onrender.com'; // Ensure this matches your backend port
+// IMPORTANT: Ensure this URL matches where your Node.js backend is deployed.
+// If your backend is deployed on Render.com at restaurantmgtsys.onrender.com, use this URL.
+// If running locally, change it back to 'http://localhost:5000/api'.
+const BACKEND_API_URL = 'https://restaurantmgtsys.onrender.com/api';
 
 // --- In-memory state (for current order being built) ---
 let currentOrder = [];
@@ -738,7 +741,8 @@ window.editExpense = async (id) => {
         } else {
             showMessageBox('Expense not found for editing.');
         }
-    } catch (error) {
+    }
+    catch (error) {
         // Error handled by fetchData
     }
 };
@@ -890,13 +894,12 @@ menuForm.addEventListener('submit', async (event) => {
     // Note: The frontend currently does not have a UI to define recipes.
     // The backend expects a 'recipe' array in the MenuItem schema.
     // For now, we send an empty array or rely on backend defaults.
-    // If recipes are mandatory on backend, you'll need a UI for it.
+    // You would extend the UI to allow adding ingredients to a recipe if needed.
     const payload = {
         name,
         price,
         category,
         recipe: [] // Sending an empty recipe array for now.
-                          // You would extend the UI to allow adding ingredients to a recipe.
     };
 
     try {
@@ -978,7 +981,7 @@ window.deleteMenuItem = async (id) => {
 
 
 // Initialize: Show Order Management and render all relevant sections on load
-window.onload = async () => {
+document.addEventListener('DOMContentLoaded', async () => {
     showSection('order-management'); // Set initial section to Order Management
     document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
 
@@ -1005,4 +1008,4 @@ window.onload = async () => {
     await renderInventoryItems();
     await renderExpenses();
     await generateReports(); // Generate initial report based on default dates
-};
+});

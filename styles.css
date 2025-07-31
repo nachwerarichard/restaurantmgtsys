@@ -51,7 +51,11 @@ body {
         }
         .sidebar-nav li {
             margin-bottom: 8px; /* space-y-2 equivalent */
-            color:white;
+        }
+
+       .sidebar-nav li a {
+            color: white;
+            text-decoration: none;
         }
         .nav-link {
             display: flex;

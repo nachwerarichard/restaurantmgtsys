@@ -198,7 +198,7 @@ const inventoryController = {
     },
     createIngredient: async (req, res) => {
         const { name, quantity, unit, costPerUnit } = req.body;
-        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit });
+        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit,spoilage });
 
         try {
             const savedIngredient = await newIngredient.save();
@@ -212,12 +212,12 @@ const inventoryController = {
     },
     updateIngredient: async (req, res) => {
         const { id } = req.params;
-        const { name, quantity, unit, costPerUnit } = req.body;
+        const { name, quantity, unit, costPerUnit,spoilage } = req.body;
 
         try {
             const updatedIngredient = await Ingredient.findByIdAndUpdate(
                 id,
-                { name, quantity, unit, costPerUnit },
+                { name, quantity, unit, costPerUnit,spoilage },
                 { new: true, runValidators: true }
             );
 

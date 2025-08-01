@@ -1052,8 +1052,8 @@ async function renderMenuItems() {
             const recipeDisplay = item.recipe && item.recipe.length > 0
                 ? item.recipe.map(rItem => {
                     // Ensure allIngredients is populated before trying to find ingredient details
-                    const ingredientName = allIngredients.find(ing => ing._id === rItem.ingredient)?.name || 'Unknown';
-                    const ingredientUnit = allIngredients.find(ing => ing._id === rItem.ingredient)?.unit || '';
+                    const ingredientName = rItem.ingredient?.name || 'Unknown';
+                    const ingredientUnit = rItem.ingredient?.unit || '';
                     return `${ingredientName} (${rItem.quantityUsed.toFixed(2)} ${ingredientUnit})`;
                 }).join(', ')
                 : 'N/A';

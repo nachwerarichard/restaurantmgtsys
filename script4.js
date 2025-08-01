@@ -584,7 +584,7 @@ async function renderSalesTransactions() {
                 <td class="text-gray">$${transaction.profit.toFixed(2)}</td>
                 <td class="text-gray">${transaction.paymentMethod}</td>
                 <td class="table-actions">
-                    <button class="view-details">View Details</button>
+                    <button class="view-details">View Only</button>
                 </td>
             `;
             salesTransactionsTableBody.appendChild(row);

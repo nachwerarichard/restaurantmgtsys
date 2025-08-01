@@ -59,7 +59,11 @@ const Expense = mongoose.model('Expense', expenseSchema);
 
 // Sale Schema
 const saleSchema = new mongoose.Schema({
-    date: { type: Date, required: true },
+date: {
+  type: Date,
+  default: Date.now,
+  required: true
+}
     itemSold: { type: String, required: true, trim: true }, // Name of the menu item sold
     quantity: { type: Number, required: true, min: 1 }, // Quantity of the menu item sold
     amount: { type: Number, required: true, min: 0 }, // Total sale amount for this item
@@ -71,7 +75,11 @@ const Sale = mongoose.model('Sale', saleSchema);
 
 // KitchenOrder Schema
 const kitchenOrderSchema = new mongoose.Schema({
-    date: { type: Date, required: true },
+date: {
+  type: Date,
+  default: Date.now,
+  required: true
+}
     items: [{ // Array of items in the order
         menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
         quantity: { type: Number, required: true, min: 1 }

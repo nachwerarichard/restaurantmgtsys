@@ -1074,8 +1074,7 @@ async function renderMenuItems() {
     } catch (error) {
         // Error handled by fetchData
     }
-    console.log('Menu Item Recipe:', item.recipe);
-console.log('All Ingredients:', allIngredients);
+   
 
 }
 

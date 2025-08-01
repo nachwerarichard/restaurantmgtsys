@@ -58,7 +58,8 @@ const salesTransactionSchema = new mongoose.Schema({
     amount: { type: Number, required: true, min: 0 },
     costOfGoods: { type: Number, required: true, min: 0 },
     paymentMethod: { type: String, required: true, default: 'Cash' },
-    date: { type: Date, default: Date.now }
+    date: { type: Date, default: Date.now, required: true }
+
 }, { timestamps: true });
 const SalesTransaction = mongoose.model('SalesTransaction', salesTransactionSchema);
 

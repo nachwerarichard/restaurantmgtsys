@@ -1065,7 +1065,7 @@ async function renderMenuItems() {
                 <td class="text-gray">$${item.price.toFixed(2)}</td>
                 <td class="text-gray">${recipeDisplay}</td>
                 <td class="table-actions">
-                    <button onclick="editMenuItem('${item._id}')" class="edit">Edit</button>
+                    <button onclick="openRecipeEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="edit">Edit</button>
                     <button onclick="deleteMenuItem('${item._id}')" class="delete">Delete</button>
                 </td>
             `;
@@ -1264,3 +1264,92 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Failed to initialize waiter order statuses:", error);
     }
 });
+
+let editingMenuItem = null; // Holds full menu item being edited
+
+function openRecipeEditModal(item) {
+  editingMenuItem = item;
+
+  document.getElementById('modal-item-name').value = item.name;
+  document.getElementById('modal-item-price').value = item.price;
+  document.getElementById('modal-item-category').value = item.category;
+
+  renderModalRecipeTable(item.recipe);
+  document.getElementById('recipe-edit-modal').classList.remove('hidden');
+}
+
+function closeRecipeEditModal() {
+  editingMenuItem = null;
+  document.getElementById('recipe-edit-modal').classList.add('hidden');
+}
+
+function renderModalRecipeTable(recipeArray) {
+  const tbody = document.getElementById('modal-recipe-table-body');
+  tbody.innerHTML = '';
+
+  recipeArray.forEach((rItem, index) => {
+    const ingredient = allIngredients.find(i => i._id === rItem.ingredient);
+    const name = ingredient?.name || 'Unknown';
+    const unit = ingredient?.unit || '';
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${name}</td>
+      <td><input type="number" min="0" step="0.01" value="${rItem.quantityUsed}" onchange="updateIngredientQuantity(${index}, this.value)"></td>
+      <td>${unit}</td>
+      <td>
+        <button onclick="deleteIngredientFromRecipe(${index})" class="delete">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function updateIngredientQuantity(index, newQuantity) {
+  if (editingMenuItem && editingMenuItem.recipe[index]) {
+    editingMenuItem.recipe[index].quantityUsed = parseFloat(newQuantity);
+  }
+}
+
+function deleteIngredientFromRecipe(index) {
+  if (editingMenuItem) {
+    editingMenuItem.recipe.splice(index, 1);
+    renderModalRecipeTable(editingMenuItem.recipe);
+  }
+}
+
+async function saveEditedMenuItem() {
+  if (!editingMenuItem) return;
+
+  const name = document.getElementById('modal-item-name').value.trim();
+  const price = parseFloat(document.getElementById('modal-item-price').value);
+  const category = document.getElementById('modal-item-category').value.trim();
+
+  if (!name || isNaN(price) || !category) {
+    showMessageBox('Please fill out all fields correctly.');
+    return;
+  }
+
+  const updatedData = {
+    name,
+    price,
+    category,
+    recipe: editingMenuItem.recipe.map(r => ({
+      ingredient: r.ingredient,
+      quantityUsed: r.quantityUsed
+    }))
+  };
+
+  try {
+    await fetchData(`${BACKEND_API_URL}/menu/${editingMenuItem._id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updatedData)
+    });
+    showMessageBox('Menu item updated successfully!');
+    closeRecipeEditModal();
+    await renderMenuItems();
+  } catch (err) {
+    showMessageBox('Error updating menu item.');
+  }
+}
+

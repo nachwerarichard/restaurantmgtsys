@@ -1037,26 +1037,22 @@ async function init() {
 }
 
 init();
-
 async function renderMenuItems() {
     menuItemsTableBody.innerHTML = ''; // Clear existing rows
     try {
-        const [menuItems, allIngredients] = await Promise.all([
-            fetchData(`${BACKEND_API_URL}/menu`),
-            fetchData(`${BACKEND_API_URL}/ingredients`) // You must have this endpoint
-        ]);
+        const menuItems = await fetchData(`${BACKEND_API_URL}/menu`);
 
         if (menuItems.length === 0) {
             menuItemsTableBody.innerHTML = `<tr><td colspan="6" class="table-empty-state">No menu items added yet.</td></tr>`;
             return;
         }
-
         menuItems.forEach(item => {
+            // Format recipe for display
             const recipeDisplay = item.recipe && item.recipe.length > 0
                 ? item.recipe.map(rItem => {
-                    const ingredient = allIngredients.find(ing => ing._id === rItem.ingredient);
-                    const ingredientName = ingredient?.name || 'Unknown';
-                    const ingredientUnit = ingredient?.unit || '';
+                    // Ensure allIngredients is populated before trying to find ingredient details
+                    const ingredientName = rItem.ingredient?.name || 'Unknown';
+                    const ingredientUnit = rItem.ingredient?.unit || '';
                     return `${ingredientName} (${rItem.quantityUsed.toFixed(2)} ${ingredientUnit})`;
                 }).join(', ')
                 : 'N/A';
@@ -1076,8 +1072,11 @@ async function renderMenuItems() {
             menuItemsTableBody.appendChild(row);
         });
     } catch (error) {
-        console.error('Render error:', error);
+        // Error handled by fetchData
     }
+    console.log('Menu Item Recipe:', item.recipe);
+console.log('All Ingredients:', allIngredients);
+
 }
 
 /**

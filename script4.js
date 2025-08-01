@@ -1030,6 +1030,14 @@ window.removeRecipeIngredient = (index) => {
 /**
  * Renders the menu items in the table by fetching from backend.
  */
+let allIngredients = [];
+
+async function init() {
+    allIngredients = await fetchData(`${BACKEND_API_URL}/ingredients`);
+    await renderMenuItems();
+}
+
+init();
 async function renderMenuItems() {
     menuItemsTableBody.innerHTML = ''; // Clear existing rows
     try {
@@ -1067,6 +1075,9 @@ async function renderMenuItems() {
     } catch (error) {
         // Error handled by fetchData
     }
+    console.log('Menu Item Recipe:', item.recipe);
+console.log('All Ingredients:', allIngredients);
+
 }
 
 /**

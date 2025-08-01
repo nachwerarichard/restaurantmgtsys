@@ -45,7 +45,7 @@ async function playNotificationSound() {
 // Event listener for the OK button in the message box
 const messageBox = document.getElementById('message-box');
 const messageText = document.getElementById('message-text');
-const messageOkBtn = document.getElementById('message-box-ok-btn'); // Corrected ID
+const messageOkBtn = document.getElementById('message-ok-btn');
 
 messageOkBtn.addEventListener('click', () => {
     messageBox.classList.add('hidden');
@@ -495,7 +495,6 @@ async function checkNewOrdersForChef() {
         const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
         const newOrderCount = orders.filter(order => order.status === 'New').length;
 
-        // Only show notification if there's a *new* order that wasn't there before
         if (lastKitchenOrderCount > 0 && newOrderCount > lastKitchenOrderCount) {
             showMessageBox(`New Order Alert! You have ${newOrderCount - lastKitchenOrderCount} new order(s) to prepare.`);
         }
@@ -932,7 +931,6 @@ async function generateReports() {
                 row.innerHTML = `
                     <td class="text-gray">${formatDateForInput(expense.date)}</td>
                     <td class="text-gray">${expense.category}</td>
-                    <td class="text-gray">${expense.description}</td>
                     <td class="text-gray">$${expense.amount.toFixed(2)}</td>
                 `;
                 reportExpensesTableBody.appendChild(row);

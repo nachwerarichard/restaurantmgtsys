@@ -198,7 +198,7 @@ const inventoryController = {
         }
     },
     createIngredient: async (req, res) => {
-        const { name, quantity, unit, costPerUnit } = req.body;
+        const { name, quantity, unit, costPerUnit,spoilage} = req.body;
         const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit,spoilage });
 
         try {

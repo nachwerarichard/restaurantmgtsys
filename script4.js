@@ -1030,7 +1030,6 @@ window.removeRecipeIngredient = (index) => {
 /**
  * Renders the menu items in the table by fetching from backend.
  */
-let allIngredients = [];
 
 async function init() {
     allIngredients = await fetchData(`${BACKEND_API_URL}/ingredients`);

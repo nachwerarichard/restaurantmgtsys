@@ -31,7 +31,8 @@ const ingredientSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true, unique: true },
     quantity: { type: Number, required: true, min: 0, default: 0 }, // Current stock
     unit: { type: String, required: true, trim: true }, // e.g., kg, liter, pcs
-    costPerUnit: { type: Number, required: true, min: 0 }
+    costPerUnit: { type: Number, required: true, min: 0 },
+    spoilage: { type: Number, required: true, min: 0, default: 0 }, // Current stock
 }, { timestamps: true });
 const Ingredient = mongoose.model('Ingredient', ingredientSchema);
 

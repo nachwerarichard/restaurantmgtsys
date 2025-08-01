@@ -621,6 +621,12 @@ app.get('/api/ingredients', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch ingredients' });
     }
 });
+app.get('/menu/:id', async (req, res) => {
+    const menuItem = await MenuItem.findById(req.params.id);
+    if (!menuItem) return res.status(404).send('Not found');
+    res.json(menuItem);
+});
+
 
 // Basic route for testing the server
 app.get('/', (req, res) => {

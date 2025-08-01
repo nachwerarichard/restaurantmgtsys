@@ -931,8 +931,8 @@ async function generateReports() {
                 row.innerHTML = `
                     <td class="text-gray">${formatDateForInput(expense.date)}</td>
                     <td class="text-gray">${expense.category}</td>
-                    <td class="text-gray">{expense.description}</td>
-                    <td class="text-gray">$ugshs{expense.amount.toFixed(2)}</td>
+                    <td class="text-gray">${expense.description}</td>
+                    <td class="text-gray">ugshs${expense.amount.toFixed(2)}</td>
                 `;
                 reportExpensesTableBody.appendChild(row);
             });

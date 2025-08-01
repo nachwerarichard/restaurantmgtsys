@@ -608,7 +608,7 @@ async function renderInventoryItems() {
     try {
         allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`); // Fetch and store all ingredients
         if (allIngredients.length === 0) {
-            inventoryItemsTableBody.innerHTML = `<tr><td colspan="7" class="table-empty-state">No inventory items added yet.</td></tr>`;
+            inventoryItemsTableBody.innerHTML = `<tr><td colspan="8" class="table-empty-state">No inventory items added yet.</td></tr>`;
             return;
         }
         allIngredients.forEach(item => {
@@ -620,6 +620,7 @@ async function renderInventoryItems() {
                 <td class="text-gray">${item.quantity.toFixed(2)}</td>
                 <td class="text-gray">${item.unit}</td>
                 <td class="text-gray">$${item.costPerUnit.toFixed(2)}</td>
+                <td class="text-gray">${item.spoilage}</td>
                 <td class="text-gray">$${totalValue.toFixed(2)}</td>
                 <td class="table-actions">
                     <button onclick="editInventoryItem('${item._id}')" class="edit">Edit</button>

@@ -644,13 +644,15 @@ inventoryForm.addEventListener('submit', async (event) => {
     const quantity = parseFloat(ingredientQuantityInput.value);
     const unit = ingredientUnitInput.value.trim();
     const costPerUnit = parseFloat(ingredientCostPerUnitInput.value);
+    const spoilage = parseFloat(ingredientSpoilageInput.value);
 
-    if (!name || isNaN(quantity) || quantity < 0 || !unit || isNaN(costPerUnit) || costPerUnit < 0) {
+
+    if (!name || isNaN(quantity) || quantity < 0 || isNaN(spoilage) || !unit || isNaN(costPerUnit) || costPerUnit < 0) {
         showMessageBox('Please fill in all fields correctly for inventory item.');
         return;
     }
 
-    const payload = { name, quantity, unit, costPerUnit };
+    const payload = { name, quantity, unit, costPerUnit,spoilage };
 
     try {
         if (id) {

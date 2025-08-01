@@ -613,6 +613,14 @@ const reportController = {
 
 
 // --- API Routes ---
+app.get('/api/ingredients', async (req, res) => {
+    try {
+        const ingredients = await Ingredient.find();
+        res.json(ingredients);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch ingredients' });
+    }
+});
 
 // Basic route for testing the server
 app.get('/', (req, res) => {

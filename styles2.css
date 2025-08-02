@@ -99,6 +99,10 @@ body {
     text-align: center;
     color: #fb923c; /* text-orange-400 */
 }
+.sidebar-title img {
+    width:20px;
+    height:20px;/* text-orange-400 */
+}
 .sidebar-nav {
     flex: 1; /* flex-1 */
 }

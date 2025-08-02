@@ -100,8 +100,8 @@ body {
     color: #fb923c; /* text-orange-400 */
 }
 .sidebar-title img {
-    width:40px;
-    height:40px;/* text-orange-400 */
+    width:30px;
+    height:30px;/* text-orange-400 */
 }
 .sidebar-nav {
     flex: 1; /* flex-1 */

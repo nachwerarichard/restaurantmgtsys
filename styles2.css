@@ -98,6 +98,8 @@ body {
     margin-bottom: 32px; /* mb-8 */
     text-align: center;
     color: #fb923c; /* text-orange-400 */
+    display:flex;
+    flex-direction:column;
 }
 .sidebar-title img {
     width:40px;

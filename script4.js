@@ -324,7 +324,7 @@ async function renderOrderForm() {
         allMenuItems.forEach(item => {
             const option = document.createElement('option');
             option.value = item._id; // Use MongoDB _id
-            option.textContent = `${item.name} ($${item.price.toFixed(2)})`;
+            option.textContent = `${item.name} ( Ugshs${item.price.toFixed(2)})`;
             orderMenuItemSelect.appendChild(option);
         });
     } catch (error) {

@@ -620,9 +620,9 @@ async function renderInventoryItems() {
                 <td class="text-gray">${item.name}</td>
                 <td class="text-gray">${item.quantity.toFixed(2)}</td>
                 <td class="text-gray">${item.unit}</td>
-                <td class="text-gray">$${item.costPerUnit.toFixed(2)}</td>
+                <td class="text-gray">Ugshs${item.costPerUnit.toFixed(2)}</td>
                 <td class="text-gray">${item.spoilage}</td>
-                <td class="text-gray">$${totalValue.toFixed(2)}</td>
+                <td class="text-gray">Ugshs${totalValue.toFixed(2)}</td>
                 <td class="table-actions">
                     <button onclick="editInventoryItem('${item._id}')" class="edit">Edit</button>
                     <button onclick="deleteInventoryItem('${item._id}')" class="delete">Delete</button>

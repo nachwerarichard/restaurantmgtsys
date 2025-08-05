@@ -918,8 +918,8 @@ async function generateReports() {
                     <td class="text-gray">${formatDateForInput(transaction.date)}</td>
                     <td class="text-gray">${transaction.itemSold}</td>
                     <td class="text-gray">${transaction.quantity}</td>
-                    <td class="text-gray">$${transaction.amount.toFixed(2)}</td>
-                    <td class="text-gray">$${transaction.profit.toFixed(2)}</td>
+                    <td class="text-gray">Ugshs${transaction.amount.toFixed(2)}</td>
+                    <td class="text-gray">Ugshs${transaction.profit.toFixed(2)}</td>
                 `;
                 reportSalesTableBody.appendChild(row);
             });

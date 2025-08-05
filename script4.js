@@ -464,7 +464,7 @@ async function renderKitchenOrders() {
                 <td class="font-medium">${order._id}</td>
                 <td class="text-gray">${formatDateForInput(order.date)}</td>
                 <td class="text-gray">${itemsList}</td>
-                <td class="text-gray">$${order.totalAmount.toFixed(2)}</td>
+                <td class="text-gray">Ugshs${order.totalAmount.toFixed(2)}</td>
                 <td>
                     <span class="status-badge ${order.status.toLowerCase()}">
                         ${order.status}

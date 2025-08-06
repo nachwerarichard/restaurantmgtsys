@@ -1078,7 +1078,7 @@ async function renderMenuItems() {
                 <td class="font-medium">${item._id}</td>
                 <td class="text-gray">${item.name}</td>
                 <td class="text-gray">${item.category}</td>
-                <td class="text-gray">$${item.price.toFixed(2)}</td>
+                <td class="text-gray">Ugshs${item.price.toFixed(2)}</td>
                 <td class="text-gray">${recipeDisplay}</td>
                 <td class="table-actions">
                     <button onclick="openRecipeEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="edit">Edit</button>

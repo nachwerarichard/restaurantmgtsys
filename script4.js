@@ -902,9 +902,9 @@ async function generateReports() {
     try {
         const reportData = await fetchData(`${BACKEND_API_URL}/reports/financial?startDate=${startDate}&endDate=${endDate}`);
 
-        reportTotalSalesSpan.textContent = `$${reportData.totalSales.toFixed(2)}`;
-        reportTotalExpensesSpan.textContent = `$${reportData.totalExpenses.toFixed(2)}`;
-        reportNetBalanceSpan.textContent = `$${reportData.netProfit.toFixed(2)}`;
+        reportTotalSalesSpan.textContent = `Ugshs${reportData.totalSales.toFixed(2)}`;
+        reportTotalExpensesSpan.textContent = `Ugshs${reportData.totalExpenses.toFixed(2)}`;
+        reportNetBalanceSpan.textContent = `Ugshs${reportData.netProfit.toFixed(2)}`;
         reportNetBalanceSpan.style.color = reportData.netProfit >= 0 ? '#22c55e' : '#ef4444'; // Green for profit, red for loss
 
         // Render filtered sales details

@@ -243,12 +243,21 @@ async function showSection(sectionId) {
         // Start polling for chef notifications (new orders)
         await checkNewOrdersForChef(); // Initial check
         kitchenPollingIntervalId = setInterval(checkNewOrdersForChef, POLLING_INTERVAL);
+            messageBox.classList.add('hidden');
+
     } else if (sectionId === 'sales') {
         await renderSalesTransactions();
+            messageBox.classList.add('hidden');
+
     } else if (sectionId === 'inventory-management') {
         await renderInventoryItems();
+            messageBox.classList.add('hidden');
+
     } else if (sectionId === 'expenses') {
         await renderExpenses();
+
+            messageBox.classList.add('hidden');
+
     } else if (sectionId === 'reports') {
         // Reports are generated on button click, but we can set default dates
         if (!reportStartDateInput.value || !reportEndDateInput.value) {
@@ -260,6 +269,8 @@ async function showSection(sectionId) {
         await renderMenuItems();
         await populateRecipeIngredientSelect(); // Populate ingredients for recipe builder
         renderCurrentRecipe(); // Render the current menu item's recipe (if editing)
+            messageBox.classList.add('hidden');
+
     }
 
     // Hide sidebar on mobile after navigation

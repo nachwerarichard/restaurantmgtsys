@@ -1,6 +1,3 @@
-// script.js - Frontend JavaScript for Restaurant Management System
-
-// --- Configuration ---
 const BACKEND_API_URL = 'https://restaurantmgtsys.onrender.com/api';
 const POLLING_INTERVAL = 10000; // 10 seconds for polling (adjust as needed)
 
@@ -9,6 +6,7 @@ let currentOrder = [];
 let allMenuItems = []; // To store fetched menu items for order dropdowns
 let allIngredients = []; // To store fetched ingredients for recipe dropdown
 let currentRecipe = []; // In-memory array for the recipe being built for a menu item
+let userRole = 'admin'; // 'admin' or 'waiter' - for demonstration purposes
 
 // Notification related state
 let lastKitchenOrderCount = 0;
@@ -26,6 +24,8 @@ const synth = new Tone.Synth().toDestination();
  * @param {string} message - The message to display.
  */
 function showMessageBox(message) {
+    const messageBox = document.getElementById('message-box');
+    const messageText = document.getElementById('message-text');
     messageText.textContent = message;
     messageBox.classList.remove('hidden');
     // For notifications, also trigger sound
@@ -191,6 +191,8 @@ const recipeQuantityUsedInput = document.getElementById('recipe-quantity-used');
 const addRecipeIngredientBtn = document.getElementById('add-recipe-ingredient-btn');
 const currentRecipeList = document.getElementById('current-recipe-list');
 
+// Audit Logs Elements
+const auditLogsTableBody = document.getElementById('audit-logs-table-body');
 
 /**
  * Hides all content sections.
@@ -221,6 +223,12 @@ function stopAllPolling() {
  * @param {string} sectionId - The ID of the section to show.
  */
 async function showSection(sectionId) {
+    // Role-based access control
+    if (userRole === 'waiter' && (sectionId === 'sales' || sectionId === 'reports' || sectionId === 'audit-logs')) {
+        showMessageBox('You do not have permission to view this section.');
+        return;
+    }
+
     hideAllSections();
     stopAllPolling(); // Stop all polling when switching sections
 
@@ -243,20 +251,20 @@ async function showSection(sectionId) {
         // Start polling for chef notifications (new orders)
         await checkNewOrdersForChef(); // Initial check
         kitchenPollingIntervalId = setInterval(checkNewOrdersForChef, POLLING_INTERVAL);
-            messageBox.classList.add('hidden');
+        messageBox.classList.add('hidden');
 
     } else if (sectionId === 'sales') {
         await renderSalesTransactions();
-            messageBox.classList.add('hidden');
+        messageBox.classList.add('hidden');
 
     } else if (sectionId === 'inventory-management') {
         await renderInventoryItems();
-            messageBox.classList.add('hidden');
+        messageBox.classList.add('hidden');
 
     } else if (sectionId === 'expenses') {
         await renderExpenses();
 
-            messageBox.classList.add('hidden');
+        messageBox.classList.add('hidden');
 
     } else if (sectionId === 'reports') {
         // Reports are generated on button click, but we can set default dates
@@ -269,8 +277,10 @@ async function showSection(sectionId) {
         await renderMenuItems();
         await populateRecipeIngredientSelect(); // Populate ingredients for recipe builder
         renderCurrentRecipe(); // Render the current menu item's recipe (if editing)
-            messageBox.classList.add('hidden');
-
+        messageBox.classList.add('hidden');
+    } else if (sectionId === 'audit-logs') {
+        await renderAuditLogs();
+        messageBox.classList.add('hidden');
     }
 
     // Hide sidebar on mobile after navigation
@@ -294,7 +304,14 @@ async function handleNavLinkClick(event) {
         return; // Exit the function to prevent the TypeError
     }
 
-    await showSection(targetElement.dataset.section); // Use targetElement.dataset.section directly
+    // Role-based access control for navigation
+    const sectionId = targetElement.dataset.section;
+    if (userRole === 'waiter' && (sectionId === 'sales' || sectionId === 'reports' || sectionId === 'audit-logs')) {
+        showMessageBox('You do not have permission to view this section.');
+        return;
+    }
+
+    await showSection(sectionId); // Use targetElement.dataset.section directly
 
     // Update active state for navigation links
     navLinks.forEach(link => {
@@ -386,7 +403,10 @@ addToOrderBtn.addEventListener('click', () => {
     if (existingItemIndex > -1) {
         currentOrder[existingItemIndex].quantity += quantity;
     } else {
-        currentOrder.push({ menuItemId: selectedItemId, quantity: quantity });
+        currentOrder.push({
+            menuItemId: selectedItemId,
+            quantity: quantity
+        });
     }
 
     renderCurrentOrder();
@@ -431,7 +451,6 @@ placeOrderBtn.addEventListener('click', async () => {
         showMessageBox(`Order ${newOrder._id} placed successfully! It has been sent to the kitchen.`);
         currentOrder = []; // Clear current order
         renderCurrentOrder();
-        // No need to manually trigger chef notification here, as the polling will pick it up.
     } catch (error) {
         // Error handled by fetchData
     }
@@ -483,13 +502,13 @@ async function renderKitchenOrders() {
                 </td>
                 <td class="table-actions">
                     ${order.status === 'New' || order.status === 'Preparing' ?
-                        `<button onclick="markOrderReady('${order._id}')" class="edit">Mark Ready</button>` :
-                        `<button class="edit" disabled>Mark Ready</button>`
-                    }
+                `<button onclick="markOrderReady('${order._id}')" class="edit">Mark Ready</button>` :
+                `<button class="edit" disabled>Mark Ready</button>`
+            }
                     ${order.status !== 'Cancelled' ?
-                        `<button onclick="cancelKitchenOrder('${order._id}')" class="delete">Cancel</button>` :
-                        `<button class="delete" disabled>Cancelled</button>`
-                    }
+                `<button onclick="cancelKitchenOrder('${order._id}')" class="delete">Cancel</button>` :
+                `<button class="delete" disabled>Cancelled</button>`
+            }
                 </td>
             `;
             kitchenOrdersTableBody.appendChild(row);
@@ -530,7 +549,6 @@ window.markOrderReady = async (orderId) => {
         await renderInventoryItems(); // Inventory changes
         await renderSalesTransactions(); // Sales changes
         await generateReports(); // Reports might change
-        // No need to manually trigger waiter notification here, as the polling will pick it up.
     } catch (error) {
         // Error handled by fetchData
         if (error.message.includes('insufficient inventory')) {
@@ -665,7 +683,13 @@ inventoryForm.addEventListener('submit', async (event) => {
         return;
     }
 
-    const payload = { name, quantity, unit, costPerUnit,spoilage };
+    const payload = {
+        name,
+        quantity,
+        unit,
+        costPerUnit,
+        spoilage
+    };
 
     try {
         if (id) {
@@ -811,7 +835,12 @@ expenseForm.addEventListener('submit', async (event) => {
         return;
     }
 
-    const payload = { date: new Date(date), category, description, amount };
+    const payload = {
+        date: new Date(date),
+        category,
+        description,
+        amount
+    };
 
     try {
         if (id) {
@@ -860,8 +889,7 @@ window.editExpense = async (id) => {
         } else {
             showMessageBox('Expense not found for editing.');
         }
-    }
-    catch (error) {
+    } catch (error) {
         // Error handled by fetchData
     }
 };
@@ -969,8 +997,7 @@ generateReportBtn.addEventListener('click', generateReports);
 async function populateRecipeIngredientSelect() {
     recipeIngredientSelect.innerHTML = '<option value="">-- Select Ingredient --</option>';
     try {
-        // Use the allIngredients array which is loaded when Inventory is rendered
-        // Or fetch fresh if needed: allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`);
+        allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`);
         allIngredients.forEach(ingredient => {
             const option = document.createElement('option');
             option.value = ingredient._id;
@@ -1025,7 +1052,10 @@ addRecipeIngredientBtn.addEventListener('click', () => {
         currentRecipe[existingRecipeItemIndex].quantityUsed += quantityUsed;
     } else {
         // Add new ingredient to recipe
-        currentRecipe.push({ ingredient: selectedIngredientId, quantityUsed: quantityUsed });
+        currentRecipe.push({
+            ingredient: selectedIngredientId,
+            quantityUsed: quantityUsed
+        });
     }
 
     renderCurrentRecipe();
@@ -1046,13 +1076,6 @@ window.removeRecipeIngredient = (index) => {
 /**
  * Renders the menu items in the table by fetching from backend.
  */
-
-async function init() {
-    allIngredients = await fetchData(`${BACKEND_API_URL}/ingredients`);
-    await renderMenuItems();
-}
-
-init();
 async function renderMenuItems() {
     menuItemsTableBody.innerHTML = ''; // Clear existing rows
     try {
@@ -1064,14 +1087,13 @@ async function renderMenuItems() {
         }
         menuItems.forEach(item => {
             // Format recipe for display
-            const recipeDisplay = item.recipe && item.recipe.length > 0
-                ? item.recipe.map(rItem => {
-                    // Ensure allIngredients is populated before trying to find ingredient details
+            const recipeDisplay = item.recipe && item.recipe.length > 0 ?
+                item.recipe.map(rItem => {
                     const ingredientName = rItem.ingredient?.name || 'Unknown';
                     const ingredientUnit = rItem.ingredient?.unit || '';
                     return `${ingredientName} (${rItem.quantityUsed.toFixed(2)} ${ingredientUnit})`;
-                }).join(', ')
-                : 'N/A';
+                }).join(', ') :
+                'N/A';
 
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -1081,7 +1103,7 @@ async function renderMenuItems() {
                 <td class="text-gray">Ugshs${item.price.toFixed(2)}</td>
                 <td class="text-gray">${recipeDisplay}</td>
                 <td class="table-actions">
-                    <button onclick="openRecipeEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="edit">Edit</button>
+                    <button onclick="editMenuItem('${item._id}')" class="edit">Edit</button>
                     <button onclick="deleteMenuItem('${item._id}')" class="delete">Delete</button>
                 </td>
             `;
@@ -1090,7 +1112,7 @@ async function renderMenuItems() {
     } catch (error) {
         // Error handled by fetchData
     }
-   
+
 
 }
 
@@ -1154,8 +1176,6 @@ menuForm.addEventListener('submit', async (event) => {
  */
 window.editMenuItem = async (id) => {
     try {
-        // Fetch the specific menu item to ensure we get its populated recipe
-        // The backend /menu/:id route should populate the recipe.ingredient field
         const itemToEdit = await fetchData(`${BACKEND_API_URL}/menu/${id}`);
         if (itemToEdit) {
             menuItemIdInput.value = itemToEdit._id;
@@ -1163,16 +1183,14 @@ window.editMenuItem = async (id) => {
             itemPriceInput.value = itemToEdit.price;
             itemCategoryInput.value = itemToEdit.category;
 
-            // Populate currentRecipe for editing and render it
-            // Ensure that rItem.ingredient is the ID, not the populated object, for consistency with backend payload
             currentRecipe = itemToEdit.recipe.map(rItem => ({
-                ingredient: rItem.ingredient._id, // Extract the ID from the populated object
+                ingredient: rItem.ingredient._id,
                 quantityUsed: rItem.quantityUsed
             }));
             renderCurrentRecipe();
 
             cancelMenuEditBtn.classList.remove('hidden');
-            itemNameInput.focus(); // Focus on the first input for convenience
+            itemNameInput.focus();
         } else {
             showMessageBox('Menu item not found for editing.');
         }
@@ -1218,11 +1236,9 @@ async function checkOrderReadyForWaiter() {
         let newReadyOrders = [];
 
         orders.forEach(order => {
-            // Only consider orders that were previously not 'Ready' but now are
             if (order.status === 'Ready' && lastWaiterOrderStatuses.get(order._id) !== 'Ready') {
                 newReadyOrders.push(order._id);
             }
-            // Update the status in our in-memory map
             lastWaiterOrderStatuses.set(order._id, order.status);
         });
 
@@ -1234,12 +1250,81 @@ async function checkOrderReadyForWaiter() {
     }
 }
 
+// --- Audit Logs Functions ---
+
+/**
+ * Renders the audit logs in the table by fetching from the backend.
+ */
+async function renderAuditLogs() {
+    auditLogsTableBody.innerHTML = ''; // Clear existing rows
+    try {
+        const auditLogs = await fetchData(`${BACKEND_API_URL}/audit-logs`);
+
+        if (auditLogs.length === 0) {
+            auditLogsTableBody.innerHTML = `<tr><td colspan="5" class="table-empty-state">No audit logs found.</td></tr>`;
+            return;
+        }
+
+        auditLogs.forEach(log => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="text-gray">${new Date(log.timestamp).toLocaleString()}</td>
+                <td class="text-gray">${log.user}</td>
+                <td class="text-gray">${log.action}</td>
+                <td class="text-gray">${log.details}</td>
+                <td class="table-actions">
+                    <button onclick="deleteAuditLog('${log._id}')" class="delete">Delete</button>
+                </td>
+            `;
+            auditLogsTableBody.appendChild(row);
+        });
+    } catch (error) {
+        // Error handled by fetchData
+    }
+}
+
+/**
+ * Deletes an audit log entry via backend API.
+ * @param {string} id - The ID of the audit log to delete.
+ */
+window.deleteAuditLog = async (id) => {
+    try {
+        await fetchData(`${BACKEND_API_URL}/audit-logs/${id}`, {
+            method: 'DELETE'
+        });
+        showMessageBox('Audit log entry deleted successfully!');
+        await renderAuditLogs(); // Refresh the log display
+    } catch (error) {
+        // Error handled by fetchData
+    }
+};
 
 // Initialize: Show Order Management and render all relevant sections on load
 document.addEventListener('DOMContentLoaded', async () => {
-    showSection('order-management'); // Set initial section to Order Management
+    // Determine user role (for a real app, this would be from a login)
+    // For this example, let's assume a "login" prompt
+    const loggedInRole = prompt("Enter your role ('admin' or 'waiter'):").toLowerCase();
+    if (loggedInRole === 'admin' || loggedInRole === 'waiter') {
+        userRole = loggedInRole;
+    } else {
+        alert("Invalid role. Defaulting to 'waiter'.");
+        userRole = 'waiter';
+    }
+
+    // Restrict access for waiters by hiding navigation links
+    if (userRole === 'waiter') {
+        document.querySelector('[data-section="sales"]').classList.add('hidden');
+        document.querySelector('[data-section="reports"]').classList.add('hidden');
+        document.querySelector('[data-section="audit-logs"]').classList.add('hidden');
+        // A waiter would primarily use order and kitchen management
+        showSection('order-management');
+    } else {
+        // Admin gets full access
+        showSection('order-management'); // Admin starts on a default page
+    }
+
     const initialNavLink = document.querySelector('.nav-link[data-section="order-management"]');
-    if (initialNavLink) { // Defensive check for initial active class assignment
+    if (initialNavLink) {
         initialNavLink.classList.add('active');
     }
 
@@ -1280,91 +1365,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Failed to initialize waiter order statuses:", error);
     }
 });
-
-let editingMenuItem = null; // Holds full menu item being edited
-
-function openRecipeEditModal(item) {
-  editingMenuItem = item;
-
-  document.getElementById('modal-item-name').value = item.name;
-  document.getElementById('modal-item-price').value = item.price;
-  document.getElementById('modal-item-category').value = item.category;
-
-  renderModalRecipeTable(item.recipe);
-  document.getElementById('recipe-edit-modal').classList.remove('hidden');
-}
-
-function closeRecipeEditModal() {
-  editingMenuItem = null;
-  document.getElementById('recipe-edit-modal').classList.add('hidden');
-}
-
-function renderModalRecipeTable(recipeArray) {
-  const tbody = document.getElementById('modal-recipe-table-body');
-  tbody.innerHTML = '';
-
-  recipeArray.forEach((rItem, index) => {
-    const ingredient = allIngredients.find(i => i._id === rItem.ingredient);
-    const name = ingredient?.name || 'Unknown';
-    const unit = ingredient?.unit || '';
-
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${name}</td>
-      <td><input type="number" min="0" step="0.01" value="${rItem.quantityUsed}" onchange="updateIngredientQuantity(${index}, this.value)"></td>
-      <td>${unit}</td>
-      <td>
-        <button onclick="deleteIngredientFromRecipe(${index})" class="delete">Delete</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-function updateIngredientQuantity(index, newQuantity) {
-  if (editingMenuItem && editingMenuItem.recipe[index]) {
-    editingMenuItem.recipe[index].quantityUsed = parseFloat(newQuantity);
-  }
-}
-
-function deleteIngredientFromRecipe(index) {
-  if (editingMenuItem) {
-    editingMenuItem.recipe.splice(index, 1);
-    renderModalRecipeTable(editingMenuItem.recipe);
-  }
-}
-
-async function saveEditedMenuItem() {
-  if (!editingMenuItem) return;
-
-  const name = document.getElementById('modal-item-name').value.trim();
-  const price = parseFloat(document.getElementById('modal-item-price').value);
-  const category = document.getElementById('modal-item-category').value.trim();
-
-  if (!name || isNaN(price) || !category) {
-    showMessageBox('Please fill out all fields correctly.');
-    return;
-  }
-
-  const updatedData = {
-    name,
-    price,
-    category,
-    recipe: editingMenuItem.recipe.map(r => ({
-      ingredient: r.ingredient,
-      quantityUsed: r.quantityUsed
-    }))
-  };
-
-  try {
-    await fetchData(`${BACKEND_API_URL}/menu/${editingMenuItem._id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updatedData)
-    });
-    showMessageBox('Menu item updated successfully!');
-    closeRecipeEditModal();
-    await renderMenuItems();
-  } catch (err) {
-    showMessageBox('Error updating menu item.');
-  }
-}

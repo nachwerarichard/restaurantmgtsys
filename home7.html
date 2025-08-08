@@ -3,185 +3,564 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Dashboard</title>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Link to the custom stylesheet -->
-    <link rel="stylesheet" href="styles3.css">
-    <!-- Google Fonts for Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Restaurant Management System</title>
+    <!-- Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="styles2.css"/>
+    <!-- Tone.js for sound notifications -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    
 </head>
 <body>
 
-    <!-- Login Modal - This modal will be visible on page load -->
-    <div id="login-modal" class="modal">
-        <div class="modal-content">
-            <h2 class="header-title" style="text-align: center; margin-bottom: 24px;">Login</h2>
-            <form id="login-form" class="form-card" onsubmit="return false;">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required>
-                </div>
-                <div class="form-group" style="margin-top: 16px;">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <div class="form-buttons" style="margin-top: 24px;">
-                    <button type="submit">Login</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Mobile Menu Toggle (Hamburger Icon) -->
-    <button class="menu-toggle" id="menu-toggle">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-        </svg>
+    <button id="menu-toggle" class="menu-toggle">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
     </button>
-    <div class="sidebar-overlay"></div>
 
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-title">
-            <img src="https://www.svgrepo.com/show/530514/burger-svgrepo-com.svg" alt="Logo" class="logo">
-            RestoDash
+            <img src="patrina.png"/>
+             Patrinah Hotel
         </div>
         <nav class="sidebar-nav">
             <ul>
-                <li>
-                    <a href="#dashboard" class="nav-link active" data-section="dashboard">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        Dashboard
+               <li>
+                    <a href="#" data-section="order-management" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Make Order
                     </a>
                 </li>
                 <li>
-                    <a href="#orders" class="nav-link" data-section="orders">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                        </svg>
-                        Orders
+                    <a href="#" data-section="kitchen" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Kitchen
                     </a>
                 </li>
                 <li>
-                    <a href="#menu" class="nav-link" data-section="menu">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.467 9.5 6.253 9.5 6.253V20.75c0 1.052.545 1.396 1.5 1.396H12m0-13V2.25c0-1.052.545-1.396 1.5-1.396H12m0 13V2.25" />
-                        </svg>
-                        Menu
+                    <a href="#" data-section="sales" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Sales
                     </a>
                 </li>
                 <li>
-                    <a href="#inventory" class="nav-link" data-section="inventory">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m-2 4h4" />
-                        </svg>
+                    <a href="#" data-section="inventory-management" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
                         Inventory
                     </a>
                 </li>
                 <li>
-                    <a href="#reports" class="nav-link" data-section="reports">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
+                    <a href="#" data-section="expenses" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                        Expenses
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="reports" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                         Reports
                     </a>
                 </li>
                 <li>
-                    <a href="#expenses" class="nav-link" data-section="expenses">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        Expenses
-                    </a>
-                </li>
-                <!-- NEW: Audit Logs Navigation Link -->
-                <li>
-                    <a href="#audit-logs" class="nav-link" data-section="audit-logs">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 18V6.375c0-.621.504-1.125 1.125-1.125h3.375m9 1.5H12m4.5 0a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H12" />
-                        </svg>
-                        Audit Logs
+                    <a href="#" data-section="menu-management" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Menu Management
                     </a>
                 </li>
             </ul>
         </nav>
     </aside>
 
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
     <!-- Main Content Area -->
     <main class="main-content">
+        <!-- Top Bar -->
         <header class="header">
-            <h1 class="header-title" id="page-title">Dashboard</h1>
+            <h1 id="current-section-title" class="header-title">Order Management</h1>
             <div class="header-user-info">
-                <span>Welcome, User!</span>
-                <!-- NEW: Log out button -->
-                <button class="header-settings-btn" id="logout-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
+                <span>You are Welcome!</span>
+                <button class="header-settings-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 </button>
             </div>
         </header>
 
-        <div class="content-area">
+        <!-- Content Sections -->
+        <div id="content-area" class="content-area">
 
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="content-section active">
-                <h2>Dashboard</h2>
-                <!-- Dashboard content here... -->
+            <!-- Order Management Section (Replaces Dashboard) -->
+            <section id="order-management" class="content-section active">
+                <h2>Order Management</h2>
+                <div class="section-card">
+                    <h3>Create New Order</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="order-menu-item">Select Item</label>
+                            <select id="order-menu-item" class="form-control">
+                                <!-- Menu items will be loaded here by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="order-quantity">Quantity</label>
+                            <input type="number" id="order-quantity" value="1" min="1" class="form-control">
+                        </div>
+                        <button id="add-to-order-btn" class="add-button">Add to Order</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">Current Order</h4>
+                    <ul id="current-order-list" class="order-list">
+                        <!-- Items added to current order will appear here -->
+                    </ul>
+                    <div class="order-total">
+                        Total: Ugshs.<span id="current-order-total">0.00</span>
+                    </div>
+
+                    <button id="place-order-btn" class="add-button" style="margin-top: 16px;">Place Order</button>
+                </div>
+                <div id="message-box" class="message-box hidden">
+        <div class="message-box-content">
+            <p id="message-text" class="message-box-text"></p>
+            <button id="message-ok-btn" class="message-box-ok-btn">
+                OK
+            </button>
+        </div>
+    </div>
             </section>
 
-            <!-- Orders Section -->
-            <section id="orders" class="content-section">
-                <h2>Orders</h2>
-                <!-- Orders content here... -->
+            <!-- Kitchen Section -->
+            <section id="kitchen" class="content-section">
+                <h2>Kitchen Management</h2>
+                <div class="date-filter-container">
+                    <div class="form-group">
+                        <label for="kitchen-start-date">Start Date:</label>
+                        <input type="date" id="kitchen-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="kitchen-end-date">End Date:</label>
+                        <input type="date" id="kitchen-end-date">
+                    </div>
+                    <button id="filter-kitchen-btn">Filter Orders</button>
+                </div>
+                <div class="section-card">
+                    <h3>Current Orders</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Items</th>
+                                    <th>Total Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kitchen-orders-table-body">
+                                <!-- Kitchen orders will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
-            <!-- Menu Section -->
-            <section id="menu" class="content-section">
-                <h2>Menu Management</h2>
-                <!-- Menu content here... -->
+            <!-- Sales Section -->
+            <section id="sales" class="content-section">
+                <h2>Sales Management</h2>
+                <div class="date-filter-container">
+                    <div class="form-group">
+                        <label for="sales-start-date">Start Date:</label>
+                        <input type="date" id="sales-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="sales-end-date">End Date:</label>
+                        <input type="date" id="sales-end-date">
+                    </div>
+                    <button id="filter-sales-btn">Filter Sales</button>
+                </div>
+                <div class="section-card">
+                    <h3>Recent Transactions</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Date</th>
+                                    <th>Item Sold</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Cost of Goods</th>
+                                    <th>Profit</th>
+                                    <th>Payment Method</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-transactions-table-body">
+                                <!-- Sales transactions will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
-            <!-- Inventory Section -->
-            <section id="inventory" class="content-section">
-                <h2>Inventory</h2>
-                <!-- Inventory content here... -->
+            <!-- Inventory Management Section -->
+            <section id="inventory-management" class="content-section">
+                <h2>Inventory Management</h2>
+                <div class="date-filter-container">
+                    <div class="form-group">
+                        <label for="inventory-start-date">Start Date:</label>
+                        <input type="date" id="inventory-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="inventory-end-date">End Date:</label>
+                        <input type="date" id="inventory-end-date">
+                    </div>
+                    <button id="filter-inventory-btn">Filter Inventory</button>
+                </div>
+                <div class="section-card">
+                    <h3>Raw Ingredients Stock</h3>
+
+                    <!-- Add New Ingredient Form -->
+                    <form id="inventory-form" class="form-card">
+                        <h4>Add/Edit Ingredient</h4>
+                        <input type="hidden" id="ingredient-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="ingredient-name">Ingredient Name</label>
+                                <input type="text" id="ingredient-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ingredient-quantity">Quantity</label>
+                                <input type="number" id="ingredient-quantity" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ingredient-unit">Unit (e.g., kg, liter, pcs)</label>
+                                <input type="text" id="ingredient-unit" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ingredient-cost-per-unit">Cost Per Unit (Ugsh)</label>
+                                <input type="number" id="ingredient-cost-per-unit" step="0.01" required>
+                            </div>
+                             <div class="form-group">
+                                <label for="ingredient-unit">Spoilage</label>
+                                <input type="text" id="ingredient-spoilage" >
+                            </div>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="submit">
+                                Save Ingredient
+                            </button>
+                            <button type="button" id="cancel-ingredient-edit-btn" class="cancel-button hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Inventory Items List -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Quantity</th>
+                                    <th>Unit</th>
+                                    <th>Cost/Unit</th>
+                                    <th>Spoilage</th>
+                                    <th>Total Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-items-table-body">
+                                <!-- Inventory items will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses" class="content-section">
+                <h2>Expenses Management</h2>
+                <div class="date-filter-container">
+                    <div class="form-group">
+                        <label for="expense-start-date">Start Date:</label>
+                        <input type="date" id="expense-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="expense-end-date">End Date:</label>
+                        <input type="date" id="expense-end-date">
+                    </div>
+                    <button id="filter-expenses-btn">Filter Expenses</button>
+                </div>
+                <div class="section-card">
+                    <h3>Recent Expenses</h3>
+                    <!-- Add New Expense Form -->
+                    <form id="expense-form" class="form-card">
+                        <h4>Add/Edit Expense</h4>
+                        <input type="hidden" id="expense-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="expense-date">Date</label>
+                                <input type="date" id="expense-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-category">Category</label>
+                                <input type="text" id="expense-category" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-description">Description</label>
+                                <input type="text" id="expense-description" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-amount">Amount (Ugshs)</label>
+                                <input type="number" id="expense-amount" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="submit">
+                                Save Expense
+                            </button>
+                            <button type="button" id="cancel-expense-edit-btn" class="cancel-button hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-table-body">
+                                <!-- Sample Expenses -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- Reports Section -->
             <section id="reports" class="content-section">
                 <h2>Reports</h2>
-                <!-- Reports content here... -->
-            </section>
-
-            <!-- Expenses Section -->
-            <section id="expenses" class="content-section">
-                <h2>Expenses</h2>
-                <!-- Expenses content here... -->
-            </section>
-
-            <!-- NEW: Audit Logs Section -->
-            <section id="audit-logs" class="content-section">
-                <h2>Audit Logs</h2>
+                <div class="date-filter-container">
+                    <div class="form-group">
+                        <label for="report-start-date">Start Date:</label>
+                        <input type="date" id="report-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="report-end-date">End Date:</label>
+                        <input type="date" id="report-end-date">
+                    </div>
+                    <button id="generate-report-btn">Generate Report</button>
+                </div>
                 <div class="section-card">
-                    <h3>Recent System Activity</h3>
-                    <p>This section will display a log of all user and system actions.</p>
+                    <h3>Financial Overview</h3>
+                    <div class="dashboard-grid" style="margin-bottom: 24px;">
+                        <div class="card">
+                            <div>
+                                <p class="card-text-sm">Total Sales (Filtered)</p>
+                                <p class="card-text-bold" id="report-total-sales">Ugshs 0.00</p>
+                            </div>
+                            <svg class="card-icon green" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.592 1L21 12h-3.812c-.622 1.043-1.554 1.795-2.67 2.234l-1.355 1.355C12.71 17.065 11.2 17.5 9.75 17.5H4.25c-1.24 0-2.25-1.01-2.25-2.25v-2.5c0-1.24 1.01-2.25 2.25-2.25h5.5c1.45 0 2.96-.435 4.125-1.25l1.355-1.355C14.462 7.105 15.394 6.353 16.016 5.31H21l-5.408-2.704C14.08 2.402 13.11 2 12 2z"></path></svg>
+                        </div>
+                        <div class="card">
+                            <div>
+                                <p class="card-text-sm">Total Expenses (Filtered)</p>
+                                <p class="card-text-bold" id="report-total-expenses">Ugshs. 0.00</p>
+                            </div>
+                            <svg class="card-icon red" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                        </div>
+                        <div class="card">
+                            <div>
+                                <p class="card-text-sm">Net Balance (Profit/Loss)</p>
+                                <p class="card-text-bold" id="report-net-balance">Ugshs. 0.00</p>
+                            </div>
+                            <svg class="card-icon blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.592 1L21 12h-3.812c-.622 1.043-1.554 1.795-2.67 2.234l-1.355 1.355C12.71 17.065 11.2 17.5 9.75 17.5H4.25c-1.24 0-2.25-1.01-2.25-2.25v-2.5c0-1.24 1.01-2.25 2.25-2.25h5.5c1.45 0 2.96-.435 4.125-1.25l1.355-1.355C14.462 7.105 15.394 6.353 16.016 5.31H21l-5.408-2.704C14.08 2.402 13.11 2 12 2z"></path></svg>
+                        </div>
+                    </div>
+                    <hr style="margin-bottom: 24px; border-color: #e5e7eb;">
+                    <h3>Sales Details (Filtered)</h3>
+                    <div class="table-container" id="report-sales-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Item Sold</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-sales-table-body">
+                                <!-- Filtered sales will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <h3 style="margin-top: 24px;">Expense Details (Filtered)</h3>
+                    <div class="table-container" id="report-expenses-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-expenses-table-body">
+                                <!-- Filtered expenses will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Menu Management Section (CRUD Example) -->
+            <section id="menu-management" class="content-section">
+                <h2>Menu Management</h2>
+                <div class="section-card">
+                    <h3>Menu Items</h3>
+
+                    <!-- Add New Item Form -->
+                    <form id="menu-form" class="form-card">
+                        <h4>Add/Edit Menu Item</h4>
+                        <input type="hidden" id="menu-item-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="item-name">Item Name</label>
+                                <input type="text" id="item-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="item-price">Price (Ugshs)</label>
+                                <input type="number" id="item-price" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-category">Category</label>
+                            <input type="text" id="item-category" required>
+                        </div>
+
+                        <!-- NEW: Recipe Management Section -->
+                        <div class="form-card" style="margin-top: 24px;">
+                            <h4>Recipe Ingredients</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="recipe-ingredient-select">Select Ingredient</label>
+                                    <select id="recipe-ingredient-select" class="form-control">
+                                        <!-- Ingredients will be loaded here -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recipe-quantity-used">Quantity Used</label>
+                                    <input type="number" id="recipe-quantity-used" step="0.01" min="0" value="0" class="form-control">
+                                </div>
+                                <button type="button" id="add-recipe-ingredient-btn" class="add-button" style="grid-column: span 2; margin-top: 0;">Add to Recipe</button>
+                            </div>
+
+                            <h5 style="margin-top: 16px; font-size: 1rem; font-weight: 500;">Current Recipe:</h5>
+                            <ul id="current-recipe-list" class="order-list" style="margin-top: 8px;">
+                                <!-- Recipe ingredients will be displayed here -->
+                                <li class="order-list-item">No ingredients added to recipe.</li>
+                            </ul>
+                        </div>
+                        <!-- END NEW: Recipe Management Section -->
+
+                        <div class="form-buttons" style="margin-top: 24px;">
+                            <button type="submit">
+                                Save Item
+                            </button>
+                            <button type="button" id="cancel-menu-edit-btn" class="cancel-button hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Menu Items List -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Recipe</th> <!-- Added column for recipe overview -->
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menu-items-table-body">
+                                <!-- Menu items will be loaded here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         </div>
     </main>
+<!-- Recipe Edit Modal -->
+<div id="recipe-edit-modal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close-modal-btn" onclick="closeRecipeEditModal()">&times;</span>
+    <h3>Edit Menu Item & Recipe</h3>
 
-    <!-- Message Box Modal -->
-    <div id="message-box" class="message-box hidden">
-        <div class="message-box-content">
-            <p id="message-box-text" class="message-box-text"></p>
-            <button id="message-box-ok-btn" class="message-box-ok-btn">OK</button>
-        </div>
+    <!-- Editable Menu Item Info -->
+    <div class="form-group">
+      <label for="modal-item-name">Item Name</label>
+      <input type="text" id="modal-item-name">
     </div>
+    <div class="form-group">
+      <label for="modal-item-price">Price (Ugshs)</label>
+      <input type="number" id="modal-item-price" step="0.01" min="0">
+    </div>
+    <div class="form-group">
+      <label for="modal-item-category">Category</label>
+      <input type="text" id="modal-item-category">
+    </div>
+
+    <!-- Editable Recipe Table -->
+    <h4>Recipe Ingredients</h4>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ingredient</th>
+          <th>Quantity Used</th>
+          <th>Unit</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="modal-recipe-table-body">
+        <!-- Rows will be dynamically added -->
+      </tbody>
+    </table>
+
+    <div class="form-buttons">
+      <button onclick="saveEditedMenuItem()">Save Changes</button>
+      <button onclick="closeRecipeEditModal()" class="cancel-button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+    <!-- Custom Message Box -->
+   <!-- <div id="message-box" class="message-box hidden">
+        <div class="message-box-content">
+            <p id="message-text" class="message-box-text"></p>
+            <button id="message-ok-btn" class="message-box-ok-btn">
+                OK
+            </button>
+        </div>
+    </div>-->
+
+    <!-- Link to external JavaScript file -->
+    <script src="script4.js"></script>
 </body>
 </html>

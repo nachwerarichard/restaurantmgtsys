@@ -1,6 +1,3 @@
-// script.js - Frontend JavaScript for Restaurant Management System
-
-// --- Configuration ---
 const BACKEND_API_URL = 'https://restaurantmgtsys.onrender.com/api';
 const POLLING_INTERVAL = 10000; // 10 seconds for polling (adjust as needed)
 
@@ -207,22 +204,15 @@ const logoutButton = document.getElementById('logout-btn');
  * @param {string[]} allowedRoles - An array of roles that can access the section.
  * @returns {boolean} True if the current user role is in the allowed roles.
  */
-    const usernameInput = document.getElementById('username').value.trim();
-
 const allowedRoles = {
-                'order-management': ['admin', 'waiter'],
-                'kitchen': ['admin', 'waiter'],
-                'sales': ['admin'],
-                'inventory-management': ['admin'],
-                'expenses': ['admin'],
-                'reports': ['admin'],
-                'menu-management': ['admin', 'waiter']
-            };
-
- const users = {
-        'Ronald': { password: '123', role: 'admin' },
-        'Martha': { password: '123', role: 'waiter' }
-    };
+    'order-management': ['admin', 'waiter'],
+    'kitchen': ['admin', 'waiter'],
+    'sales': ['admin'],
+    'inventory-management': ['admin'],
+    'expenses': ['admin'],
+    'reports': ['admin'],
+    'menu-management': ['admin', 'waiter']
+};
 
 function checkUserRole(allowedRoles) {
     if (!currentUserRole) {
@@ -388,12 +378,89 @@ sidebarOverlay.addEventListener('click', () => {
     sidebarOverlay.classList.remove('active');
 });
 
+
 // --- User Authentication and Session Management ---
+
+/**
+ * Initializes the main application based on the user's role.
+ * This function handles all the post-login setup.
+ */
+async function initializeApp(userRole) {
+    currentUserRole = userRole;
+
+    // Hide navigation links the user doesn't have access to
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+        const sectionId = link.dataset.section;
+        const allowedRoles = {
+            'order-management': ['admin', 'waiter'],
+            'kitchen': ['admin', 'waiter'],
+            'sales': ['admin'],
+            'inventory-management': ['admin'],
+            'expenses': ['admin'],
+            'reports': ['admin'],
+            'menu-management': ['admin', 'waiter']
+        };
+
+        if (!checkUserRole(allowedRoles[sectionId])) {
+            link.classList.add('hidden');
+        } else {
+            link.classList.remove('hidden');
+        }
+    });
+
+    loginPage.classList.add('hidden');
+    mainAppContainer.classList.remove('hidden');
+    errorMessage.classList.add('hidden');
+
+    // Set default dates for date inputs
+    const today = getTodayDate();
+    const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
+
+    kitchenStartDateInput.value = thirtyDaysAgo;
+    kitchenEndDateInput.value = today;
+    salesStartDateInput.value = thirtyDaysAgo;
+    salesEndDateInput.value = today;
+    inventoryStartDateInput.value = thirtyDaysAgo;
+    inventoryEndDateInput.value = today;
+    expenseStartDateInput.value = thirtyDaysAgo;
+    expenseEndDateInput.value = today;
+    reportStartDateInput.value = thirtyDaysAgo;
+    reportEndDateInput.value = today;
+
+    // Load initial data for all sections the user can see
+    await renderOrderForm();
+    renderCurrentOrder();
+    await renderKitchenOrders();
+    await renderSalesTransactions();
+    await renderInventoryItems();
+    await renderExpenses();
+    await generateReports();
+    await populateRecipeIngredientSelect();
+
+    // Initial population of lastWaiterOrderStatuses for accurate change detection
+    try {
+        const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
+        orders.forEach(order => {
+            lastWaiterOrderStatuses.set(order._id, order.status);
+        });
+    } catch (error) {
+        console.error("Failed to initialize waiter order statuses:", error);
+    }
+
+    // Show a default section based on role
+    if (currentUserRole === 'waiter') {
+        await showSection('order-management');
+        document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
+    } else if (currentUserRole === 'admin') {
+        await showSection('order-management');
+        document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
+    }
+}
 
 /**
  * Handles user login and role-based access.
  */
-loginForm.addEventListener('submit', function(event) {
+loginForm.addEventListener('submit', async function(event) {
     event.preventDefault();
     const usernameInput = document.getElementById('username').value.trim();
     const passwordInput = document.getElementById('password').value.trim();
@@ -405,42 +472,12 @@ loginForm.addEventListener('submit', function(event) {
     };
 
     if (users[usernameInput] && users[usernameInput].password === passwordInput) {
-        // Correct credentials, set role and show the main app
-        currentUserRole = users[usernameInput].role;
-        sessionStorage.setItem('userRole', currentUserRole);
+        // Correct credentials, set role and store in session
+        const role = users[usernameInput].role;
+        sessionStorage.setItem('userRole', role);
 
-        // Hide navigation links the user doesn't have access to
-        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
-            const sectionId = link.dataset.section;
-            const allowedRoles = {
-                'order-management': ['admin', 'waiter'],
-                'kitchen': ['admin', 'waiter'],
-                'sales': ['admin'],
-                'inventory-management': ['admin'],
-                'expenses': ['admin'],
-                'reports': ['admin'],
-                'menu-management': ['admin', 'waiter']
-            };
-
-            if (!checkUserRole(allowedRoles[sectionId])) {
-                link.classList.add('hidden');
-            } else {
-                link.classList.remove('hidden');
-            }
-        });
-
-        loginPage.classList.add('hidden');
-        mainAppContainer.classList.remove('hidden');
-        errorMessage.classList.add('hidden');
-
-        // Based on the role, show the default starting section
-        if (currentUserRole === 'waiter') {
-            showSection('order-management');
-            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
-        } else if (currentUserRole === 'admin') {
-            showSection('order-management');
-            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
-        }
+        // Call the new initialization function
+        await initializeApp(role);
 
     } else {
         // Incorrect credentials
@@ -801,7 +838,6 @@ async function renderInventoryItems() {
         // Error handled by fetchData
     }
 }
-
 /**
  * Handles form submission for adding/editing inventory items.
  */
@@ -1023,7 +1059,7 @@ window.editExpense = async (id) => {
         return;
     }
     try {
-        const expenses = await fetchData(`${BACKEND_API_URL}/expenses`); // Fetch all to find by ID
+        const expenses = await fetchData(`${BACKEND_API-URL}/expenses`); // Fetch all to find by ID
         const expenseToEdit = expenses.find(exp => exp._id === id);
         if (expenseToEdit) {
             expenseIdInput.value = expenseToEdit._id;
@@ -1535,73 +1571,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Attempt to get user role from session storage
     const userRoleFromSession = sessionStorage.getItem('userRole');
     if (userRoleFromSession) {
-        currentUserRole = userRoleFromSession;
-        loginPage.classList.add('hidden');
-        mainAppContainer.classList.remove('hidden');
-
-        // Hide nav links based on role
-        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
-            const sectionId = link.dataset.section;
-            const allowedRoles = {
-                'order-management': ['admin', 'waiter'],
-                'kitchen': ['admin', 'waiter'],
-                'sales': ['admin'],
-                'inventory-management': ['admin'],
-                'expenses': ['admin'],
-                'reports': ['admin'],
-                'menu-management': ['admin', 'waiter']
-            };
-
-            if (!checkUserRole(allowedRoles[sectionId])) {
-                link.classList.add('hidden');
-            } else {
-                link.classList.remove('hidden');
-            }
-        });
-
-        // Set default dates for date inputs
-        const today = getTodayDate();
-        const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
-
-        kitchenStartDateInput.value = thirtyDaysAgo;
-        kitchenEndDateInput.value = today;
-        salesStartDateInput.value = thirtyDaysAgo;
-        salesEndDateInput.value = today;
-        inventoryStartDateInput.value = thirtyDaysAgo;
-        inventoryEndDateInput.value = today;
-        expenseStartDateInput.value = thirtyDaysAgo;
-        expenseEndDateInput.value = today;
-        reportStartDateInput.value = thirtyDaysAgo;
-        reportEndDateInput.value = today;
-
-        // Load initial data for all sections the user can see
-        await renderOrderForm();
-        renderCurrentOrder();
-        await renderKitchenOrders();
-        await renderSalesTransactions();
-        await renderInventoryItems();
-        await renderExpenses();
-        await generateReports();
-        await populateRecipeIngredientSelect();
-
-        // Initial population of lastWaiterOrderStatuses for accurate change detection
-        try {
-            const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
-            orders.forEach(order => {
-                lastWaiterOrderStatuses.set(order._id, order.status);
-            });
-        } catch (error) {
-            console.error("Failed to initialize waiter order statuses:", error);
-        }
-
-        // Show a default section based on role
-        if (currentUserRole === 'waiter') {
-            await showSection('order-management');
-            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
-        } else if (currentUserRole === 'admin') {
-            await showSection('order-management');
-            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
-        }
+        // If a session exists, initialize the app
+        await initializeApp(userRoleFromSession);
     } else {
         // No session, show the login page
         loginPage.classList.remove('hidden');

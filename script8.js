@@ -16,6 +16,9 @@ let lastWaiterOrderStatuses = new Map(); // Map to store {orderId: status} for w
 let kitchenPollingIntervalId = null;
 let waiterPollingIntervalId = null;
 
+// User role state
+let currentUserRole = null;
+
 // Tone.js Synth for notifications
 const synth = new Tone.Synth().toDestination();
 
@@ -191,31 +194,26 @@ const recipeQuantityUsedInput = document.getElementById('recipe-quantity-used');
 const addRecipeIngredientBtn = document.getElementById('add-recipe-ingredient-btn');
 const currentRecipeList = document.getElementById('current-recipe-list');
 
+// Login elements
 const loginForm = document.getElementById('login-form');
-        const loginPage = document.getElementById('login-page');
-        const mainAppContainer = document.getElementById('main-app-container');
-        const errorMessage = document.getElementById('error-message');
+const loginPage = document.getElementById('login-page');
+const mainAppContainer = document.getElementById('main-app-container');
+const errorMessage = document.getElementById('error-message');
+const logoutButton = document.getElementById('logout-btn');
 
-        loginForm.addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent the form from submitting normally
 
-            const usernameInput = document.getElementById('username').value;
-            const passwordInput = document.getElementById('password').value;
+/**
+ * Function to check if the user is authorized for a given role.
+ * @param {string[]} allowedRoles - An array of roles that can access the section.
+ * @returns {boolean} True if the current user role is in the allowed roles.
+ */
+function checkUserRole(allowedRoles) {
+    if (!currentUserRole) {
+        return false;
+    }
+    return allowedRoles.includes(currentUserRole);
+}
 
-            // Define the correct credentials
-            const correctUsername = 'admin';
-            const correctPassword = '123';
-
-            if (usernameInput === correctUsername && passwordInput === correctPassword) {
-                // Correct credentials, show the main app
-                loginPage.classList.add('hidden');
-                mainAppContainer.classList.remove('hidden');
-                // You might also want to save a session token here
-            } else {
-                // Incorrect credentials, show an error message
-                errorMessage.classList.remove('hidden');
-            }
-        });
 /**
  * Hides all content sections.
  */
@@ -245,6 +243,24 @@ function stopAllPolling() {
  * @param {string} sectionId - The ID of the section to show.
  */
 async function showSection(sectionId) {
+    // Define role-based access for each section
+    const sectionRoles = {
+        'order-management': ['admin', 'waiter'],
+        'kitchen': ['admin', 'waiter'], // Waiter needs to see kitchen to track orders, but chef works here
+        'sales': ['admin'],
+        'inventory-management': ['admin'],
+        'expenses': ['admin'],
+        'reports': ['admin'],
+        'menu-management': ['admin', 'waiter'] // Waiter can see the menu
+    };
+
+    if (!checkUserRole(sectionRoles[sectionId])) {
+        showMessageBox('You do not have permission to access this section.');
+        // Redirect to a safe section, like order-management for waiter, or just the main page.
+        // For simplicity, we'll just not switch the section.
+        return;
+    }
+
     hideAllSections();
     stopAllPolling(); // Stop all polling when switching sections
 
@@ -267,21 +283,16 @@ async function showSection(sectionId) {
         // Start polling for chef notifications (new orders)
         await checkNewOrdersForChef(); // Initial check
         kitchenPollingIntervalId = setInterval(checkNewOrdersForChef, POLLING_INTERVAL);
-            messageBox.classList.add('hidden');
-
+        messageBox.classList.add('hidden');
     } else if (sectionId === 'sales') {
         await renderSalesTransactions();
-            messageBox.classList.add('hidden');
-
+        messageBox.classList.add('hidden');
     } else if (sectionId === 'inventory-management') {
         await renderInventoryItems();
-            messageBox.classList.add('hidden');
-
+        messageBox.classList.add('hidden');
     } else if (sectionId === 'expenses') {
         await renderExpenses();
-
-            messageBox.classList.add('hidden');
-
+        messageBox.classList.add('hidden');
     } else if (sectionId === 'reports') {
         // Reports are generated on button click, but we can set default dates
         if (!reportStartDateInput.value || !reportEndDateInput.value) {
@@ -293,8 +304,7 @@ async function showSection(sectionId) {
         await renderMenuItems();
         await populateRecipeIngredientSelect(); // Populate ingredients for recipe builder
         renderCurrentRecipe(); // Render the current menu item's recipe (if editing)
-            messageBox.classList.add('hidden');
-
+        messageBox.classList.add('hidden');
     }
 
     // Hide sidebar on mobile after navigation
@@ -310,24 +320,39 @@ async function showSection(sectionId) {
  */
 async function handleNavLinkClick(event) {
     event.preventDefault();
-    const targetElement = event.currentTarget; // Assign to a clearer variable
+    const targetElement = event.currentTarget;
 
-    // Defensive check: Ensure targetElement is a valid HTMLElement before proceeding
     if (!targetElement || !(targetElement instanceof HTMLElement)) {
         console.error("Clicked element is not a valid HTML element:", targetElement);
-        return; // Exit the function to prevent the TypeError
+        return;
     }
 
-    await showSection(targetElement.dataset.section); // Use targetElement.dataset.section directly
+    const sectionId = targetElement.dataset.section;
+    if (sectionId) {
+        // Check permissions before showing the section
+        const sectionRoles = {
+            'order-management': ['admin', 'waiter'],
+            'kitchen': ['admin', 'waiter'],
+            'sales': ['admin'],
+            'inventory-management': ['admin'],
+            'expenses': ['admin'],
+            'reports': ['admin'],
+            'menu-management': ['admin', 'waiter']
+        };
 
-    // Update active state for navigation links
-    navLinks.forEach(link => {
-        // Also add a defensive check here for each link in the NodeList
-        if (link && link instanceof HTMLElement) {
-            link.classList.remove('active');
+        if (checkUserRole(sectionRoles[sectionId])) {
+            await showSection(sectionId);
+            // Update active state for navigation links
+            navLinks.forEach(link => {
+                if (link && link instanceof HTMLElement) {
+                    link.classList.remove('active');
+                }
+            });
+            targetElement.classList.add('active');
+        } else {
+            showMessageBox('You do not have permission to access this section.');
         }
-    });
-    targetElement.classList.add('active'); // Add 'active' to the clicked link
+    }
 }
 
 // Add event listeners to navigation links
@@ -344,6 +369,79 @@ menuToggle.addEventListener('click', () => {
 sidebarOverlay.addEventListener('click', () => {
     sidebar.classList.remove('active');
     sidebarOverlay.classList.remove('active');
+});
+
+// --- User Authentication and Session Management ---
+
+/**
+ * Handles user login and role-based access.
+ */
+loginForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+    const usernameInput = document.getElementById('username').value.trim();
+    const passwordInput = document.getElementById('password').value.trim();
+
+    // Define user credentials and roles
+    const users = {
+        'Ronald': { password: '123', role: 'admin' },
+        'Martha': { password: '123', role: 'waiter' }
+    };
+
+    if (users[usernameInput] && users[usernameInput].password === passwordInput) {
+        // Correct credentials, set role and show the main app
+        currentUserRole = users[usernameInput].role;
+        sessionStorage.setItem('userRole', currentUserRole);
+
+        // Hide navigation links the user doesn't have access to
+        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+            const sectionId = link.dataset.section;
+            const allowedRoles = {
+                'order-management': ['admin', 'waiter'],
+                'kitchen': ['admin', 'waiter'],
+                'sales': ['admin'],
+                'inventory-management': ['admin'],
+                'expenses': ['admin'],
+                'reports': ['admin'],
+                'menu-management': ['admin', 'waiter']
+            };
+
+            if (!checkUserRole(allowedRoles[sectionId])) {
+                link.classList.add('hidden');
+            } else {
+                link.classList.remove('hidden');
+            }
+        });
+
+        loginPage.classList.add('hidden');
+        mainAppContainer.classList.remove('hidden');
+        errorMessage.classList.add('hidden');
+
+        // Based on the role, show the default starting section
+        if (currentUserRole === 'waiter') {
+            showSection('order-management');
+            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
+        } else if (currentUserRole === 'admin') {
+            showSection('order-management');
+            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
+        }
+
+    } else {
+        // Incorrect credentials
+        errorMessage.classList.remove('hidden');
+    }
+});
+
+/**
+ * Handles user logout.
+ */
+logoutButton.addEventListener('click', () => {
+    sessionStorage.removeItem('userRole');
+    currentUserRole = null;
+    stopAllPolling();
+    mainAppContainer.classList.add('hidden');
+    loginPage.classList.remove('hidden');
+    loginForm.reset();
+    document.getElementById('username').focus();
 });
 
 
@@ -506,11 +604,11 @@ async function renderKitchenOrders() {
                     </span>
                 </td>
                 <td class="table-actions">
-                    ${order.status === 'New' || order.status === 'Preparing' ?
+                    ${(order.status === 'New' || order.status === 'Preparing') && checkUserRole(['admin']) ?
                         `<button onclick="markOrderReady('${order._id}')" class="edit">Mark Ready</button>` :
                         `<button class="edit" disabled>Mark Ready</button>`
                     }
-                    ${order.status !== 'Cancelled' ?
+                    ${order.status !== 'Cancelled' && checkUserRole(['admin']) ?
                         `<button onclick="cancelKitchenOrder('${order._id}')" class="delete">Cancel</button>` :
                         `<button class="delete" disabled>Cancelled</button>`
                     }
@@ -523,11 +621,17 @@ async function renderKitchenOrders() {
     }
 }
 
+
 /**
  * Checks for new orders for the chef notification.
  */
 async function checkNewOrdersForChef() {
     try {
+        // Only run for admin/chef
+        if (currentUserRole !== 'admin') {
+            return;
+        }
+
         const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
         const newOrderCount = orders.filter(order => order.status === 'New').length;
 
@@ -545,6 +649,12 @@ async function checkNewOrdersForChef() {
  * @param {string} orderId - The ID of the order to mark ready.
  */
 window.markOrderReady = async (orderId) => {
+    // Permission check
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
+
     try {
         const response = await fetchData(`${BACKEND_API_URL}/kitchen-orders/${orderId}/ready`, {
             method: 'PUT'
@@ -568,6 +678,11 @@ window.markOrderReady = async (orderId) => {
  * @param {string} orderId - The ID of the order to cancel.
  */
 window.cancelKitchenOrder = async (orderId) => {
+    // Permission check
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
     try {
         const response = await fetchData(`${BACKEND_API_URL}/kitchen-orders/${orderId}/cancel`, {
             method: 'PUT'
@@ -659,8 +774,8 @@ async function renderInventoryItems() {
                 <td class="text-gray">${item.spoilage}</td>
                 <td class="text-gray">Ugshs${totalValue.toFixed(2)}</td>
                 <td class="table-actions">
-                    <button onclick="editInventoryItem('${item._id}')" class="edit">Edit</button>
-                    <button onclick="deleteInventoryItem('${item._id}')" class="delete">Delete</button>
+                    ${checkUserRole(['admin']) ? `<button onclick="editInventoryItem('${item._id}')" class="edit">Edit</button>` : ''}
+                    ${checkUserRole(['admin']) ? `<button onclick="deleteInventoryItem('${item._id}')" class="delete">Delete</button>` : ''}
                 </td>
             `;
             inventoryItemsTableBody.appendChild(row);
@@ -675,6 +790,10 @@ async function renderInventoryItems() {
  */
 inventoryForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
 
     const id = ingredientIdInput.value;
     const name = ingredientNameInput.value.trim();
@@ -683,13 +802,12 @@ inventoryForm.addEventListener('submit', async (event) => {
     const costPerUnit = parseFloat(ingredientCostPerUnitInput.value);
     const spoilage = parseFloat(ingredientSpoilageInput.value);
 
-
     if (!name || isNaN(quantity) || quantity < 0 || isNaN(spoilage) || !unit || isNaN(costPerUnit) || costPerUnit < 0) {
         showMessageBox('Please fill in all fields correctly for inventory item.');
         return;
     }
 
-    const payload = { name, quantity, unit, costPerUnit,spoilage };
+    const payload = { name, quantity, unit, costPerUnit, spoilage };
 
     try {
         if (id) {
@@ -724,6 +842,11 @@ inventoryForm.addEventListener('submit', async (event) => {
  * @param {string} id - The ID of the inventory item to edit.
  */
 window.editInventoryItem = async (id) => {
+    // Permission check
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
     try {
         // Fetch all ingredients again to ensure we have the latest data
         allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`);
@@ -734,6 +857,7 @@ window.editInventoryItem = async (id) => {
             ingredientQuantityInput.value = itemToEdit.quantity;
             ingredientUnitInput.value = itemToEdit.unit;
             ingredientCostPerUnitInput.value = itemToEdit.costPerUnit;
+            ingredientSpoilageInput.value = itemToEdit.spoilage;
             cancelIngredientEditBtn.classList.remove('hidden');
             ingredientNameInput.focus();
         } else {
@@ -758,6 +882,11 @@ cancelIngredientEditBtn.addEventListener('click', () => {
  * @param {string} id - The ID of the inventory item to delete.
  */
 window.deleteInventoryItem = async (id) => {
+    // Permission check
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
     try {
         await fetchData(`${BACKEND_API_URL}/inventory/${id}`, {
             method: 'DELETE'
@@ -776,9 +905,6 @@ filterInventoryBtn.addEventListener('click', renderInventoryItems);
 
 // --- Expenses Management Functions (CRUD) ---
 
-/**
- * Renders the expenses in the table by fetching from backend.
- */
 async function renderExpenses() {
     expensesTableBody.innerHTML = ''; // Clear existing rows
     const startDate = expenseStartDateInput.value;
@@ -805,10 +931,10 @@ async function renderExpenses() {
                 <td class="font-medium">${formatDateForInput(expense.date)}</td>
                 <td class="text-gray">${expense.category}</td>
                 <td class="text-gray">${expense.description}</td>
-                <td class="text-gray">$${expense.amount.toFixed(2)}</td>
+                <td class="text-gray">Ugshs${expense.amount.toFixed(2)}</td>
                 <td class="table-actions">
-                    <button onclick="editExpense('${expense._id}')" class="edit">Edit</button>
-                    <button onclick="deleteExpense('${expense._id}')" class="delete">Delete</button>
+                    ${checkUserRole(['admin']) ? `<button onclick="editExpense('${expense._id}')" class="edit">Edit</button>` : ''}
+                    ${checkUserRole(['admin']) ? `<button onclick="deleteExpense('${expense._id}')" class="delete">Delete</button>` : ''}
                 </td>
             `;
             expensesTableBody.appendChild(row);
@@ -823,6 +949,10 @@ async function renderExpenses() {
  */
 expenseForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
 
     const id = expenseIdInput.value;
     const date = expenseDateInput.value;
@@ -870,6 +1000,11 @@ expenseForm.addEventListener('submit', async (event) => {
  * @param {string} id - The ID of the expense to edit.
  */
 window.editExpense = async (id) => {
+    // Permission check
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
     try {
         const expenses = await fetchData(`${BACKEND_API_URL}/expenses`); // Fetch all to find by ID
         const expenseToEdit = expenses.find(exp => exp._id === id);
@@ -884,8 +1019,7 @@ window.editExpense = async (id) => {
         } else {
             showMessageBox('Expense not found for editing.');
         }
-    }
-    catch (error) {
+    } catch (error) {
         // Error handled by fetchData
     }
 };
@@ -904,6 +1038,11 @@ cancelExpenseEditBtn.addEventListener('click', () => {
  * @param {string} id - The ID of the expense to delete.
  */
 window.deleteExpense = async (id) => {
+    // Permission check
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
     try {
         await fetchData(`${BACKEND_API_URL}/expenses/${id}`, {
             method: 'DELETE'
@@ -926,6 +1065,13 @@ filterExpensesBtn.addEventListener('click', renderExpenses);
  * Generates and displays sales, expense, and balance reports for a given date range.
  */
 async function generateReports() {
+    // Permission check
+    if (!checkUserRole(['admin'])) {
+        // If a non-admin somehow gets here, just show a message.
+        showMessageBox('You do not have permission to view reports.');
+        return;
+    }
+
     const startDate = reportStartDateInput.value;
     const endDate = reportEndDateInput.value;
 
@@ -971,7 +1117,7 @@ async function generateReports() {
                     <td class="text-gray">${formatDateForInput(expense.date)}</td>
                     <td class="text-gray">${expense.category}</td>
                     <td class="text-gray">${expense.description}</td>
-                    <td class="text-gray">ugshs${expense.amount.toFixed(2)}</td>
+                    <td class="text-gray">Ugshs${expense.amount.toFixed(2)}</td>
                 `;
                 reportExpensesTableBody.appendChild(row);
             });
@@ -993,8 +1139,6 @@ generateReportBtn.addEventListener('click', generateReports);
 async function populateRecipeIngredientSelect() {
     recipeIngredientSelect.innerHTML = '<option value="">-- Select Ingredient --</option>';
     try {
-        // Use the allIngredients array which is loaded when Inventory is rendered
-        // Or fetch fresh if needed: allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`);
         allIngredients.forEach(ingredient => {
             const option = document.createElement('option');
             option.value = ingredient._id;
@@ -1034,6 +1178,10 @@ function renderCurrentRecipe() {
  * Adds an ingredient to the current menu item's recipe (in-memory).
  */
 addRecipeIngredientBtn.addEventListener('click', () => {
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to add a recipe ingredient.');
+        return;
+    }
     const selectedIngredientId = recipeIngredientSelect.value;
     const quantityUsed = parseFloat(recipeQuantityUsedInput.value);
 
@@ -1062,6 +1210,10 @@ addRecipeIngredientBtn.addEventListener('click', () => {
  * @param {number} index - The index of the recipe ingredient to remove.
  */
 window.removeRecipeIngredient = (index) => {
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to remove a recipe ingredient.');
+        return;
+    }
     currentRecipe.splice(index, 1);
     renderCurrentRecipe();
 };
@@ -1070,13 +1222,6 @@ window.removeRecipeIngredient = (index) => {
 /**
  * Renders the menu items in the table by fetching from backend.
  */
-
-async function init() {
-    allIngredients = await fetchData(`${BACKEND_API_URL}/ingredients`);
-    await renderMenuItems();
-}
-
-init();
 async function renderMenuItems() {
     menuItemsTableBody.innerHTML = ''; // Clear existing rows
     try {
@@ -1087,10 +1232,8 @@ async function renderMenuItems() {
             return;
         }
         menuItems.forEach(item => {
-            // Format recipe for display
             const recipeDisplay = item.recipe && item.recipe.length > 0
                 ? item.recipe.map(rItem => {
-                    // Ensure allIngredients is populated before trying to find ingredient details
                     const ingredientName = rItem.ingredient?.name || 'Unknown';
                     const ingredientUnit = rItem.ingredient?.unit || '';
                     return `${ingredientName} (${rItem.quantityUsed.toFixed(2)} ${ingredientUnit})`;
@@ -1105,8 +1248,14 @@ async function renderMenuItems() {
                 <td class="text-gray">Ugshs${item.price.toFixed(2)}</td>
                 <td class="text-gray">${recipeDisplay}</td>
                 <td class="table-actions">
-                    <button onclick="openRecipeEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="edit">Edit</button>
-                    <button onclick="deleteMenuItem('${item._id}')" class="delete">Delete</button>
+                    ${checkUserRole(['admin']) ?
+                        `<button onclick="openRecipeEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="edit">Edit</button>` :
+                        ''
+                    }
+                    ${checkUserRole(['admin']) ?
+                        `<button onclick="deleteMenuItem('${item._id}')" class="delete">Delete</button>` :
+                        ''
+                    }
                 </td>
             `;
             menuItemsTableBody.appendChild(row);
@@ -1114,8 +1263,6 @@ async function renderMenuItems() {
     } catch (error) {
         // Error handled by fetchData
     }
-   
-
 }
 
 /**
@@ -1123,6 +1270,10 @@ async function renderMenuItems() {
  */
 menuForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
 
     const id = menuItemIdInput.value;
     const name = itemNameInput.value.trim();
@@ -1134,12 +1285,11 @@ menuForm.addEventListener('submit', async (event) => {
         return;
     }
 
-    // Use the currentRecipe array from the in-memory state
     const payload = {
         name,
         price,
         category,
-        recipe: currentRecipe // Now sending the actual recipe data
+        recipe: currentRecipe
     };
 
     try {
@@ -1177,26 +1327,24 @@ menuForm.addEventListener('submit', async (event) => {
  * @param {string} id - The ID of the menu item to edit.
  */
 window.editMenuItem = async (id) => {
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
     try {
-        // Fetch the specific menu item to ensure we get its populated recipe
-        // The backend /menu/:id route should populate the recipe.ingredient field
         const itemToEdit = await fetchData(`${BACKEND_API_URL}/menu/${id}`);
         if (itemToEdit) {
             menuItemIdInput.value = itemToEdit._id;
             itemNameInput.value = itemToEdit.name;
             itemPriceInput.value = itemToEdit.price;
             itemCategoryInput.value = itemToEdit.category;
-
-            // Populate currentRecipe for editing and render it
-            // Ensure that rItem.ingredient is the ID, not the populated object, for consistency with backend payload
             currentRecipe = itemToEdit.recipe.map(rItem => ({
-                ingredient: rItem.ingredient._id, // Extract the ID from the populated object
+                ingredient: rItem.ingredient._id,
                 quantityUsed: rItem.quantityUsed
             }));
             renderCurrentRecipe();
-
             cancelMenuEditBtn.classList.remove('hidden');
-            itemNameInput.focus(); // Focus on the first input for convenience
+            itemNameInput.focus();
         } else {
             showMessageBox('Menu item not found for editing.');
         }
@@ -1221,6 +1369,10 @@ cancelMenuEditBtn.addEventListener('click', () => {
  * @param {string} id - The ID of the menu item to delete.
  */
 window.deleteMenuItem = async (id) => {
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to perform this action.');
+        return;
+    }
     try {
         await fetchData(`${BACKEND_API_URL}/menu/${id}`, {
             method: 'DELETE'
@@ -1238,15 +1390,18 @@ window.deleteMenuItem = async (id) => {
  */
 async function checkOrderReadyForWaiter() {
     try {
+        // Only run for waiter/admin
+        if (currentUserRole !== 'waiter' && currentUserRole !== 'admin') {
+            return;
+        }
+
         const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
         let newReadyOrders = [];
 
         orders.forEach(order => {
-            // Only consider orders that were previously not 'Ready' but now are
             if (order.status === 'Ready' && lastWaiterOrderStatuses.get(order._id) !== 'Ready') {
                 newReadyOrders.push(order._id);
             }
-            // Update the status in our in-memory map
             lastWaiterOrderStatuses.set(order._id, order.status);
         });
 
@@ -1259,136 +1414,180 @@ async function checkOrderReadyForWaiter() {
 }
 
 
-// Initialize: Show Order Management and render all relevant sections on load
-document.addEventListener('DOMContentLoaded', async () => {
-    showSection('order-management'); // Set initial section to Order Management
-    const initialNavLink = document.querySelector('.nav-link[data-section="order-management"]');
-    if (initialNavLink) { // Defensive check for initial active class assignment
-        initialNavLink.classList.add('active');
+// --- Modal Recipe Edit Functions ---
+let editingMenuItem = null;
+
+window.openRecipeEditModal = (item) => {
+    if (!checkUserRole(['admin'])) {
+        showMessageBox('You do not have permission to edit menu items.');
+        return;
     }
+    editingMenuItem = item;
+    document.getElementById('modal-item-name').value = item.name;
+    document.getElementById('modal-item-price').value = item.price;
+    document.getElementById('modal-item-category').value = item.category;
 
-    // Set default dates for date inputs
-    const today = getTodayDate();
-    const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
+    renderModalRecipeTable(item.recipe.map(r => ({
+        ingredient: r.ingredient._id,
+        quantityUsed: r.quantityUsed
+    })));
+    document.getElementById('recipe-edit-modal').classList.remove('hidden');
+};
 
-    kitchenStartDateInput.value = thirtyDaysAgo;
-    kitchenEndDateInput.value = today;
-    salesStartDateInput.value = thirtyDaysAgo;
-    salesEndDateInput.value = today;
-    inventoryStartDateInput.value = thirtyDaysAgo; // Inventory display itself is not date-filtered
-    inventoryEndDateInput.value = today;
-    expenseStartDateInput.value = thirtyDaysAgo;
-    expenseEndDateInput.value = today;
-    reportStartDateInput.value = thirtyDaysAgo;
-    reportEndDateInput.value = today;
-
-    // Initial data loads for all sections
-    await renderOrderForm(); // Populates menu items for order creation
-    renderCurrentOrder(); // Renders the empty initial order
-    await renderKitchenOrders();
-    await renderSalesTransactions();
-    await renderInventoryItems(); // This now also populates allIngredients
-    await renderExpenses();
-    await generateReports(); // Generate initial report based on default dates
-
-    // Populate recipe ingredient select on load (after inventory is loaded)
-    await populateRecipeIngredientSelect();
-
-    // Initial population of lastWaiterOrderStatuses for accurate change detection
-    try {
-        const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
-        orders.forEach(order => {
-            lastWaiterOrderStatuses.set(order._id, order.status);
-        });
-    } catch (error) {
-        console.error("Failed to initialize waiter order statuses:", error);
-    }
-});
-
-let editingMenuItem = null; // Holds full menu item being edited
-
-function openRecipeEditModal(item) {
-  editingMenuItem = item;
-
-  document.getElementById('modal-item-name').value = item.name;
-  document.getElementById('modal-item-price').value = item.price;
-  document.getElementById('modal-item-category').value = item.category;
-
-  renderModalRecipeTable(item.recipe);
-  document.getElementById('recipe-edit-modal').classList.remove('hidden');
-}
+document.getElementById('modal-close-btn').addEventListener('click', closeRecipeEditModal);
 
 function closeRecipeEditModal() {
-  editingMenuItem = null;
-  document.getElementById('recipe-edit-modal').classList.add('hidden');
+    editingMenuItem = null;
+    document.getElementById('recipe-edit-modal').classList.add('hidden');
 }
 
 function renderModalRecipeTable(recipeArray) {
-  const tbody = document.getElementById('modal-recipe-table-body');
-  tbody.innerHTML = '';
+    const tbody = document.getElementById('modal-recipe-table-body');
+    tbody.innerHTML = '';
 
-  recipeArray.forEach((rItem, index) => {
-    const ingredient = allIngredients.find(i => i._id === rItem.ingredient);
-    const name = ingredient?.name || 'Unknown';
-    const unit = ingredient?.unit || '';
+    recipeArray.forEach((rItem, index) => {
+        const ingredient = allIngredients.find(i => i._id === rItem.ingredient);
+        const name = ingredient?.name || 'Unknown';
+        const unit = ingredient?.unit || '';
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${name}</td>
-      <td><input type="number" min="0" step="0.01" value="${rItem.quantityUsed}" onchange="updateIngredientQuantity(${index}, this.value)"></td>
-      <td>${unit}</td>
-      <td>
-        <button onclick="deleteIngredientFromRecipe(${index})" class="delete">Delete</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${name}</td>
+            <td><input type="number" min="0" step="0.01" value="${rItem.quantityUsed}" onchange="updateIngredientQuantity(${index}, this.value)"></td>
+            <td>${unit}</td>
+            <td>
+                <button onclick="deleteIngredientFromRecipe(${index})" class="delete">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
 }
 
 function updateIngredientQuantity(index, newQuantity) {
-  if (editingMenuItem && editingMenuItem.recipe[index]) {
-    editingMenuItem.recipe[index].quantityUsed = parseFloat(newQuantity);
-  }
+    if (editingMenuItem && editingMenuItem.recipe[index]) {
+        editingMenuItem.recipe[index].quantityUsed = parseFloat(newQuantity);
+    }
 }
 
 function deleteIngredientFromRecipe(index) {
-  if (editingMenuItem) {
-    editingMenuItem.recipe.splice(index, 1);
-    renderModalRecipeTable(editingMenuItem.recipe);
-  }
+    if (editingMenuItem) {
+        editingMenuItem.recipe.splice(index, 1);
+        renderModalRecipeTable(editingMenuItem.recipe);
+    }
 }
 
 async function saveEditedMenuItem() {
-  if (!editingMenuItem) return;
+    if (!editingMenuItem) return;
 
-  const name = document.getElementById('modal-item-name').value.trim();
-  const price = parseFloat(document.getElementById('modal-item-price').value);
-  const category = document.getElementById('modal-item-category').value.trim();
+    const name = document.getElementById('modal-item-name').value.trim();
+    const price = parseFloat(document.getElementById('modal-item-price').value);
+    const category = document.getElementById('modal-item-category').value.trim();
 
-  if (!name || isNaN(price) || !category) {
-    showMessageBox('Please fill out all fields correctly.');
-    return;
-  }
+    if (!name || isNaN(price) || !category) {
+        showMessageBox('Please fill out all fields correctly.');
+        return;
+    }
 
-  const updatedData = {
-    name,
-    price,
-    category,
-    recipe: editingMenuItem.recipe.map(r => ({
-      ingredient: r.ingredient,
-      quantityUsed: r.quantityUsed
-    }))
-  };
+    const updatedData = {
+        name,
+        price,
+        category,
+        recipe: editingMenuItem.recipe.map(r => ({
+            ingredient: r.ingredient,
+            quantityUsed: r.quantityUsed
+        }))
+    };
 
-  try {
-    await fetchData(`${BACKEND_API_URL}/menu/${editingMenuItem._id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updatedData)
-    });
-    showMessageBox('Menu item updated successfully!');
-    closeRecipeEditModal();
-    await renderMenuItems();
-  } catch (err) {
-    showMessageBox('Error updating menu item.');
-  }
+    try {
+        await fetchData(`${BACKEND_API_URL}/menu/${editingMenuItem._id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updatedData)
+        });
+        showMessageBox('Menu item updated successfully!');
+        closeRecipeEditModal();
+        await renderMenuItems();
+    } catch (err) {
+        showMessageBox('Error updating menu item.');
+    }
 }
+document.getElementById('save-recipe-btn').addEventListener('click', saveEditedMenuItem);
+
+
+// Initialize: Check for session and show appropriate content
+document.addEventListener('DOMContentLoaded', async () => {
+    // Attempt to get user role from session storage
+    const userRoleFromSession = sessionStorage.getItem('userRole');
+    if (userRoleFromSession) {
+        currentUserRole = userRoleFromSession;
+        loginPage.classList.add('hidden');
+        mainAppContainer.classList.remove('hidden');
+
+        // Hide nav links based on role
+        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+            const sectionId = link.dataset.section;
+            const allowedRoles = {
+                'order-management': ['admin', 'waiter'],
+                'kitchen': ['admin', 'waiter'],
+                'sales': ['admin'],
+                'inventory-management': ['admin'],
+                'expenses': ['admin'],
+                'reports': ['admin'],
+                'menu-management': ['admin', 'waiter']
+            };
+
+            if (!checkUserRole(allowedRoles[sectionId])) {
+                link.classList.add('hidden');
+            } else {
+                link.classList.remove('hidden');
+            }
+        });
+
+        // Set default dates for date inputs
+        const today = getTodayDate();
+        const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
+
+        kitchenStartDateInput.value = thirtyDaysAgo;
+        kitchenEndDateInput.value = today;
+        salesStartDateInput.value = thirtyDaysAgo;
+        salesEndDateInput.value = today;
+        inventoryStartDateInput.value = thirtyDaysAgo;
+        inventoryEndDateInput.value = today;
+        expenseStartDateInput.value = thirtyDaysAgo;
+        expenseEndDateInput.value = today;
+        reportStartDateInput.value = thirtyDaysAgo;
+        reportEndDateInput.value = today;
+
+        // Load initial data for all sections the user can see
+        await renderOrderForm();
+        renderCurrentOrder();
+        await renderKitchenOrders();
+        await renderSalesTransactions();
+        await renderInventoryItems();
+        await renderExpenses();
+        await generateReports();
+        await populateRecipeIngredientSelect();
+
+        // Initial population of lastWaiterOrderStatuses for accurate change detection
+        try {
+            const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
+            orders.forEach(order => {
+                lastWaiterOrderStatuses.set(order._id, order.status);
+            });
+        } catch (error) {
+            console.error("Failed to initialize waiter order statuses:", error);
+        }
+
+        // Show a default section based on role
+        if (currentUserRole === 'waiter') {
+            await showSection('order-management');
+            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
+        } else if (currentUserRole === 'admin') {
+            await showSection('order-management');
+            document.querySelector('.nav-link[data-section="order-management"]').classList.add('active');
+        }
+    } else {
+        // No session, show the login page
+        loginPage.classList.remove('hidden');
+        mainAppContainer.classList.add('hidden');
+    }
+});

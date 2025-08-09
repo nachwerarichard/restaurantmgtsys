@@ -214,11 +214,11 @@ const allowedRoles = {
     'menu-management': ['admin', 'waiter']
 };
 
-function checkUserRole(allowedRoles) {
-    if (!currentUserRole) {
+function checkUserRole(requiredRoles) {
+    if (!currentUserRole || !requiredRoles) {
         return false;
     }
-    return allowedRoles.includes(currentUserRole);
+    return requiredRoles.includes(currentUserRole);
 }
 
 /**
@@ -249,7 +249,46 @@ function stopAllPolling() {
  * Shows a specific content section and updates the title.
  * @param {string} sectionId - The ID of the section to show.
  */
+
+async function initializeApp(userRole) {
+    currentUserRole = userRole;
+
+    // Hide navigation links the user doesn't have access to
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+        const sectionId = link.dataset.section;
+        // Pass the allowed roles for the specific section
+        if (!checkUserRole(allowedRoles[sectionId])) {
+            link.classList.add('hidden');
+        } else {
+            link.classList.remove('hidden');
+        }
+    });
+
+    // ... (rest of initializeApp function)
+}
+async function initializeApp(userRole) {
+    currentUserRole = userRole;
+
+    // Hide navigation links the user doesn't have access to
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+        const sectionId = link.dataset.section;
+        // Pass the allowed roles for the specific section
+        if (!checkUserRole(allowedRoles[sectionId])) {
+            link.classList.add('hidden');
+        } else {
+            link.classList.remove('hidden');
+        }
+    });
+
+    // ... (rest of initializeApp function)
+}
+
 async function showSection(sectionId) {
+
+    if (!checkUserRole(allowedRoles[sectionId])) {
+        showMessageBox('You do not have permission to access this section.');
+        return;
+    }
     // Define role-based access for each section
     const sectionRoles = {
         'order-management': ['admin', 'waiter'],
@@ -337,35 +376,14 @@ async function handleNavLinkClick(event) {
     const sectionId = targetElement.dataset.section;
     if (sectionId) {
         // Check permissions before showing the section
-        const sectionRoles = {
-            'order-management': ['admin', 'waiter'],
-            'kitchen': ['admin', 'waiter'],
-            'sales': ['admin'],
-            'inventory-management': ['admin'],
-            'expenses': ['admin'],
-            'reports': ['admin'],
-            'menu-management': ['admin', 'waiter']
-        };
-
-        if (checkUserRole(sectionRoles[sectionId])) {
+        if (checkUserRole(allowedRoles[sectionId])) {
             await showSection(sectionId);
-            // Update active state for navigation links
-            navLinks.forEach(link => {
-                if (link && link instanceof HTMLElement) {
-                    link.classList.remove('active');
-                }
-            });
-            targetElement.classList.add('active');
+            // ... (rest of handleNavLinkClick function)
         } else {
             showMessageBox('You do not have permission to access this section.');
         }
     }
 }
-
-// Add event listeners to navigation links
-navLinks.forEach(link => {
-    link.addEventListener('click', handleNavLinkClick);
-});
 
 // --- Mobile Menu Toggle Logic ---
 menuToggle.addEventListener('click', () => {

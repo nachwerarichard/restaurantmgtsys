@@ -1605,3 +1605,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         mainAppContainer.classList.add('hidden');
     }
 });
+
+/**
+ * Renders the audit logs in the table by fetching from the backend.
+ */
+async function renderAuditLogs() {
+    // Get the table body element where the logs will be displayed.
+    const auditLogsTableBody = document.getElementById('audit-logs-table-body');
+    
+    // Check if the current user has the necessary permissions.
+    if (!checkUserRole(['admin'])) {
+        // Clear the table and show a permission denied message.
+        auditLogsTableBody.innerHTML = `<tr><td colspan="4" class="table-empty-state">You do not have permission to view audit logs.</td></tr>`;
+        showMessageBox('You do not have permission to view audit logs.');
+        return;
+    }
+
+    // Clear any existing rows in the table.
+    auditLogsTableBody.innerHTML = '';
+    
+    try {
+        // Fetch the audit logs from the backend.
+        // It's assumed your API has a route like `/auditlogs` that returns a list of log objects.
+        const auditLogs = await fetchData(`${BACKEND_API_URL}/auditlogs`);
+
+        if (auditLogs.length === 0) {
+            // Display a message if no logs are found.
+            auditLogsTableBody.innerHTML = `<tr><td colspan="4" class="table-empty-state">No audit logs found.</td></tr>`;
+            return;
+        }
+
+        // Loop through each audit log entry and create a table row for it.
+        auditLogs.forEach(log => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="text-gray">${formatDateForDisplay(log.timestamp)}</td>
+                <td class="text-gray">${log.user}</td>
+                <td class="text-gray">${log.action}</td>
+                <td class="text-gray">${log.details}</td>
+            `;
+            auditLogsTableBody.appendChild(row);
+        });
+    } catch (error) {
+        // Error is handled by fetchData, but we can log it here as well.
+        console.error("Failed to render audit logs:", error);
+    }
+}
+
+/**
+ * Helper function to format a timestamp string for display.
+ * @param {string} dateString - The date string from the backend.
+ * @returns {string} The formatted date string.
+ */
+function formatDateForDisplay(dateString) {
+    const date = new Date(dateString);
+    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString('en-US', options);
+}
+

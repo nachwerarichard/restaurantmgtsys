@@ -418,7 +418,7 @@ async function initializeApp(userRole) {
             'inventory-management': ['admin'],
             'expenses': ['admin'],
             'reports': ['admin'],
-            'menu-management': ['admin', 'waiter']
+            'menu-management': ['admin', 'waiter'],
             'auditlogs': ['admin']
         };
 

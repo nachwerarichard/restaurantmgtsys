@@ -60,11 +60,11 @@ const Expense = mongoose.model('Expense', expenseSchema);
 
 // Sale Schema
 const saleSchema = new mongoose.Schema({
-date: {
-  type: Date,
-  default: Date.now,
-  required: true
-},
+    date: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
     itemSold: { type: String, required: true, trim: true }, // Name of the menu item sold
     quantity: { type: Number, required: true, min: 1 }, // Quantity of the menu item sold
     amount: { type: Number, required: true, min: 0 }, // Total sale amount for this item
@@ -76,11 +76,11 @@ const Sale = mongoose.model('Sale', saleSchema);
 
 // KitchenOrder Schema
 const kitchenOrderSchema = new mongoose.Schema({
-date: {
-  type: Date,
-  default: Date.now,
-  required: true
-},
+    date: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
     items: [{ // Array of items in the order
         menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
         quantity: { type: Number, required: true, min: 1 }
@@ -90,6 +90,14 @@ date: {
 }, { timestamps: true });
 const KitchenOrder = mongoose.model('KitchenOrder', kitchenOrderSchema);
 
+// New AuditLog Schema and Model
+const auditLogSchema = new mongoose.Schema({
+    timestamp: { type: Date, default: Date.now },
+    user: { type: String, required: true, trim: true, default: 'System' }, // User who performed the action
+    action: { type: String, required: true, trim: true }, // e.g., 'created_menu_item', 'updated_inventory'
+    details: { type: String, required: true, trim: true } // Description of the action
+});
+const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 
 // --- Helper Functions ---
 
@@ -122,6 +130,22 @@ const validateDateRange = (startDateStr, endDateStr) => {
     return { startDate, endDate };
 };
 
+/**
+ * Helper function to create an audit log entry.
+ * @param {string} user - The user who performed the action (e.g., 'admin', 'waiter').
+ * @param {string} action - A brief description of the action (e.g., 'created_item').
+ * @param {string} details - A detailed description of the action.
+ */
+const createAuditLog = async (user, action, details) => {
+    try {
+        const log = new AuditLog({ user, action, details });
+        await log.save();
+    } catch (error) {
+        console.error('Failed to create audit log:', error);
+    }
+};
+
+
 // --- Controllers (Logic for API Endpoints) ---
 
 // --- Menu Item Controllers ---
@@ -140,7 +164,7 @@ const menuController = {
 
         try {
             const savedMenuItem = await newMenuItem.save();
-            // Populate the recipe ingredients before sending response
+            await createAuditLog('admin', 'create_menu_item', `Created new menu item: ${savedMenuItem.name}`);
             const populatedMenuItem = await MenuItem.findById(savedMenuItem._id).populate('recipe.ingredient');
             res.status(201).json(populatedMenuItem);
         } catch (error) {
@@ -164,6 +188,7 @@ const menuController = {
             if (!updatedMenuItem) {
                 return res.status(404).json({ message: 'Menu item not found' });
             }
+            await createAuditLog('admin', 'update_menu_item', `Updated menu item: ${updatedMenuItem.name}`);
             res.status(200).json(updatedMenuItem);
         } catch (error) {
             if (error.code === 11000) {
@@ -180,6 +205,7 @@ const menuController = {
             if (!deletedMenuItem) {
                 return res.status(404).json({ message: 'Menu item not found' });
             }
+            await createAuditLog('admin', 'delete_menu_item', `Deleted menu item: ${deletedMenuItem.name}`);
             res.status(200).json({ message: 'Menu item deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -198,11 +224,12 @@ const inventoryController = {
         }
     },
     createIngredient: async (req, res) => {
-        const { name, quantity, unit, costPerUnit,spoilage} = req.body;
-        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit,spoilage });
+        const { name, quantity, unit, costPerUnit, spoilage } = req.body;
+        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit, spoilage });
 
         try {
             const savedIngredient = await newIngredient.save();
+            await createAuditLog('admin', 'create_ingredient', `Created new ingredient: ${savedIngredient.name}`);
             res.status(201).json(savedIngredient);
         } catch (error) {
             if (error.code === 11000) {
@@ -213,18 +240,19 @@ const inventoryController = {
     },
     updateIngredient: async (req, res) => {
         const { id } = req.params;
-        const { name, quantity, unit, costPerUnit,spoilage } = req.body;
+        const { name, quantity, unit, costPerUnit, spoilage } = req.body;
 
         try {
             const updatedIngredient = await Ingredient.findByIdAndUpdate(
                 id,
-                { name, quantity, unit, costPerUnit,spoilage },
+                { name, quantity, unit, costPerUnit, spoilage },
                 { new: true, runValidators: true }
             );
 
             if (!updatedIngredient) {
                 return res.status(404).json({ message: 'Ingredient not found' });
             }
+            await createAuditLog('admin', 'update_ingredient', `Updated ingredient: ${updatedIngredient.name}`);
             res.status(200).json(updatedIngredient);
         } catch (error) {
             if (error.code === 11000) {
@@ -241,6 +269,7 @@ const inventoryController = {
             if (!deletedIngredient) {
                 return res.status(404).json({ message: 'Ingredient not found' });
             }
+            await createAuditLog('admin', 'delete_ingredient', `Deleted ingredient: ${deletedIngredient.name}`);
             res.status(200).json({ message: 'Ingredient deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -280,6 +309,7 @@ const expenseController = {
 
         try {
             const savedExpense = await newExpense.save();
+            await createAuditLog('admin', 'create_expense', `Recorded a new expense: ${description} for $${amount}`);
             res.status(201).json(savedExpense);
         } catch (error) {
             res.status(400).json({ message: error.message });
@@ -299,6 +329,7 @@ const expenseController = {
             if (!updatedExpense) {
                 return res.status(404).json({ message: 'Expense not found' });
             }
+            await createAuditLog('admin', 'update_expense', `Updated expense for: ${description}`);
             res.status(200).json(updatedExpense);
         } catch (error) {
             res.status(400).json({ message: error.message });
@@ -312,6 +343,7 @@ const expenseController = {
             if (!deletedExpense) {
                 return res.status(404).json({ message: 'Expense not found' });
             }
+            await createAuditLog('admin', 'delete_expense', `Deleted expense: ${deletedExpense.description}`);
             res.status(200).json({ message: 'Expense deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -346,6 +378,7 @@ const kitchenOrderController = {
 
         try {
             const savedOrder = await newOrder.save();
+            await createAuditLog('waiter', 'create_order', `Created new kitchen order #${savedOrder._id}`);
             // Populate menu item details for response
             const populatedOrder = await KitchenOrder.findById(savedOrder._id).populate('items.menuItem');
             res.status(201).json(populatedOrder);
@@ -505,11 +538,13 @@ const kitchenOrderController = {
                 await order.save({ session });
 
                 await session.commitTransaction();
+                await createAuditLog('waiter', 'mark_order_ready', `Order #${order._id} marked as ready.`);
                 res.status(200).json({ message: `Order ${id} marked as Ready! Inventory updated and sales recorded.`, order });
 
             } catch (transactionError) {
                 await session.abortTransaction();
                 console.error('Transaction failed:', transactionError);
+                await createAuditLog('system', 'transaction_failed', `Transaction failed for order #${id}. Error: ${transactionError.message}`);
                 res.status(500).json({ message: 'Failed to process order. Transaction aborted.', error: transactionError.message });
             } finally {
                 session.endSession();
@@ -534,6 +569,7 @@ const kitchenOrderController = {
 
             order.status = 'Cancelled';
             const updatedOrder = await order.save();
+            await createAuditLog('waiter', 'cancel_order', `Order #${id} was cancelled.`);
             res.status(200).json({ message: `Order ${id} has been cancelled.`, order: updatedOrder });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -620,7 +656,6 @@ const reportController = {
     }
 };
 
-
 // --- API Routes ---
 
 // Basic route for testing the server
@@ -645,6 +680,7 @@ app.post('/api/ingredients', async (req, res) => {
     try {
         const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit });
         await newIngredient.save();
+        await createAuditLog('admin', 'create_ingredient', `Created new ingredient via API: ${name}`);
         res.status(201).json(newIngredient);
     } catch (error) {
         console.error('Error adding ingredient:', error);
@@ -664,6 +700,7 @@ app.put('/api/ingredients/:id', async (req, res) => {
         if (!updatedIngredient) {
             return res.status(404).json({ message: 'Ingredient not found.' });
         }
+        await createAuditLog('admin', 'update_ingredient', `Updated ingredient via API: ${name}`);
         res.status(200).json(updatedIngredient);
     } catch (error) {
         console.error('Error updating ingredient:', error);
@@ -678,10 +715,23 @@ app.delete('/api/ingredients/:id', async (req, res) => {
         if (!deletedIngredient) {
             return res.status(404).json({ message: 'Ingredient not found.' });
         }
+        await createAuditLog('admin', 'delete_ingredient', `Deleted ingredient via API: ${deletedIngredient.name}`);
         res.status(200).json({ message: 'Ingredient deleted successfully.' });
     } catch (error) {
         console.error('Error deleting ingredient:', error);
         res.status(500).json({ message: 'Server error deleting ingredient.' });
+    }
+});
+
+// --- NEW Audit Log Routes ---
+app.get('/api/auditlogs', async (req, res) => {
+    try {
+        // Fetch all audit logs, sorted by timestamp descending (newest first)
+        const logs = await AuditLog.find().sort({ timestamp: -1 });
+        res.status(200).json(logs);
+    } catch (error) {
+        console.error('Error fetching audit logs:', error);
+        res.status(500).json({ message: 'Server error fetching audit logs.' });
     }
 });
 

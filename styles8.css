@@ -185,26 +185,51 @@ body {
     display: none;
 }
 
-
+/* Update the main-content styling */
 .main-content {
     grid-column: 2 / 3;
     padding-left: 250px;
-    /* Remove padding-top here to close the gap */
+    padding: 0; /* Remove all padding from main content container */
     transition: padding-left 0.3s ease-in-out;
 }
 
+/* Update the header styling */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: var(--card-background);
-    padding: 1.25rem 2.5rem;
+    padding: 1.25rem 2.5rem; /* Apply padding here to space header content */
     border-bottom: 1px solid var(--border-color);
-    /* Remove fixed positioning */
-    /* top: 0; */
-    /* width: calc(100% - 250px); */
-    /* z-index: 9; */
+    position: static; /* Make the header part of the normal document flow */
+    width: 100%; /* Ensure the header spans the full width of the main content area */
+    z-index: 9;
     transition: width 0.3s ease-in-out, left 0.3s ease-in-out;
+}
+
+/* Update the content-area styling to add spacing below the header */
+.content-area {
+    padding: 1.5rem 2.5rem; /* This adds the space between the header and the content below it */
+}
+
+/* Adjust the media query for mobile view */
+@media (max-width: 1023px) {
+    .main-content {
+        padding-left: 0;
+        padding-top: 0; /* Also remove padding-top for mobile */
+    }
+
+    .header {
+        position: static;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        justify-content: space-between;
+        /* The header-title is now visible on mobile */
+    }
+
+    .header-title {
+        display: block; /* Make sure the title is visible on mobile */
+    }
 }
 
 .header-title {

@@ -224,7 +224,7 @@ const allowedRoles = {
         'Martha': { password: '123', role: 'waiter' }
     };
 
-currentUserRole = users[usernameInput].role;
+currentUserRole = users[usernameInput];
 
 function checkUserRole(allowedRoles) {
     if (!currentUserRole) {

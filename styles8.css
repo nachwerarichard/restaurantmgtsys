@@ -185,10 +185,11 @@ body {
     display: none;
 }
 
+
 .main-content {
     grid-column: 2 / 3;
     padding-left: 250px;
-    padding-top: 5rem; /* Space for the fixed header */
+    /* Remove padding-top here to close the gap */
     transition: padding-left 0.3s ease-in-out;
 }
 
@@ -199,10 +200,10 @@ body {
     background-color: var(--card-background);
     padding: 1.25rem 2.5rem;
     border-bottom: 1px solid var(--border-color);
-    position: fixed;
-    top: 0;
-    width: calc(100% - 250px);
-    z-index: 9;
+    /* Remove fixed positioning */
+    /* top: 0; */
+    /* width: calc(100% - 250px); */
+    /* z-index: 9; */
     transition: width 0.3s ease-in-out, left 0.3s ease-in-out;
 }
 

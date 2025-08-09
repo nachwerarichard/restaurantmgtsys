@@ -7,77 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles8.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
-
-    <style>
-        .hidden {
-            display: none !important;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7f9;
-        }
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f7f9;
-        }
-        .login-form {
-            background-color: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .login-form h2 {
-            margin-bottom: 24px;
-            color: #1a202c;
-        }
-        .form-group-login {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .form-group-login label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #4a5568;
-        }
-        .form-group-login input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        .login-button {
-            width: 100%;
-            padding: 12px;
-            background-color: #3182ce;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .login-button:hover {
-            background-color: #2c5282;
-        }
-        .error-message {
-            color: #e53e3e;
-            margin-top: 16px;
-            font-weight: 500;
-        }
-    </style>
 </head>
 <body>
-
     <div id="login-page" class="login-container">
         <form id="login-form" class="login-form">
             <h2>Login to Patrinah Hotel RMS</h2>
@@ -93,12 +24,10 @@
             <p id="error-message" class="error-message hidden">Incorrect username or password. Please try again.</p>
         </form>
     </div>
-
     <div id="main-app-container" class="hidden">
         <button id="menu-toggle" class="menu-toggle">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
-
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-title">
                 <img src="patrina.png"/>

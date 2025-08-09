@@ -218,7 +218,12 @@ const allowedRoles = {
                 'menu-management': ['admin', 'waiter']
             };
 
-        currentUserRole = users[usernameInput].role;
+ const users = {
+        'Ronald': { password: '123', role: 'admin' },
+        'Martha': { password: '123', role: 'waiter' }
+    };
+
+currentUserRole = users[usernameInput].role;
 
 function checkUserRole(allowedRoles) {
     if (!currentUserRole) {

@@ -298,7 +298,9 @@ async function showSection(sectionId) {
         'inventory-management': ['admin'],
         'expenses': ['admin'],
         'reports': ['admin'],
-        'menu-management': ['admin', 'waiter'] // Waiter can see the menu
+        'menu-management': ['admin', 'waiter'],// Waiter can see the menu
+        'auditlogs': ['admin']
+
     };
 
     if (!checkUserRole(sectionRoles[sectionId])) {

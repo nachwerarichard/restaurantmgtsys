@@ -191,7 +191,31 @@ const recipeQuantityUsedInput = document.getElementById('recipe-quantity-used');
 const addRecipeIngredientBtn = document.getElementById('add-recipe-ingredient-btn');
 const currentRecipeList = document.getElementById('current-recipe-list');
 
+const loginForm = document.getElementById('login-form');
+        const loginPage = document.getElementById('login-page');
+        const mainAppContainer = document.getElementById('main-app-container');
+        const errorMessage = document.getElementById('error-message');
 
+        loginForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting normally
+
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+
+            // Define the correct credentials
+            const correctUsername = 'admin';
+            const correctPassword = '123';
+
+            if (usernameInput === correctUsername && passwordInput === correctPassword) {
+                // Correct credentials, show the main app
+                loginPage.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+                // You might also want to save a session token here
+            } else {
+                // Incorrect credentials, show an error message
+                errorMessage.classList.remove('hidden');
+            }
+        });
 /**
  * Hides all content sections.
  */

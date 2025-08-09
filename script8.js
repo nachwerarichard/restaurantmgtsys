@@ -211,7 +211,8 @@ const allowedRoles = {
     'inventory-management': ['admin'],
     'expenses': ['admin'],
     'reports': ['admin'],
-    'menu-management': ['admin', 'waiter']
+    'menu-management': ['admin', 'waiter'],
+    'auditlogs': ['admin']
 };
 
 function checkUserRole(requiredRoles) {

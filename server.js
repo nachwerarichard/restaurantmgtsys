@@ -6,6 +6,8 @@ require('dotenv').config();
 const express = require('express'); // Import Express framework
 const mongoose = require('mongoose'); // Import Mongoose for MongoDB interaction
 const cors = require('cors'); // Import CORS middleware for cross-origin requests
+const jwt = require('jsonwebtoken'); // Import JWT for creating and verifying tokens
+const bcrypt = require('bcryptjs'); // Import bcryptjs for password hashing
 
 // Initialize Express app
 const app = express();
@@ -16,6 +18,7 @@ app.use(cors()); // Enable CORS for all routes, allowing frontend to connect
 
 // --- Database Connection ---
 const MONGODB_URI = process.env.MONGODB_URI; // Get MongoDB URI from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // Secret for JWT
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('MongoDB connected successfully!')) // Success message
@@ -25,6 +28,24 @@ mongoose.connect(MONGODB_URI)
     });
 
 // --- MongoDB Schemas and Models ---
+
+// User Schema for Authentication
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true, trim: true },
+    password: { type: String, required: true },
+    role: { type: String, required: true, enum: ['admin', 'waiter'], default: 'waiter' }
+}, { timestamps: true });
+
+// Pre-save hook to hash password before saving
+userSchema.pre('save', async function (next) {
+    if (this.isModified('password')) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+    }
+    next();
+});
+
+const User = mongoose.model('User', userSchema);
 
 // Ingredient Schema
 const ingredientSchema = new mongoose.Schema({
@@ -662,6 +683,44 @@ const reportController = {
 app.get('/', (req, res) => {
     res.send('Restaurant Management Backend API is running!');
 });
+
+// --- User Authentication Routes ---
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const user = await User.findOne({ username });
+        if (!user) {
+            await createAuditLog('system', 'user_login_failed', `Failed login attempt for user: ${username}`);
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            await createAuditLog('system', 'user_login_failed', `Failed login attempt for user: ${username}`);
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+        await createAuditLog('system', 'user_login_success', `User ${user.username} logged in successfully.`);
+        res.status(200).json({ token, role: user.role });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Server error during login.' });
+    }
+});
+
+// For a simple logout, we just log the action and the client discards the token.
+app.post('/api/logout', async (req, res) => {
+    const { username } = req.body; // Assuming the client sends the username to be logged out
+    try {
+        await createAuditLog('system', 'user_logout', `User ${username || 'unknown'} logged out.`);
+        res.status(200).json({ message: 'Logged out successfully.' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ message: 'Server error during logout.' });
+    }
+});
+
 // --- Ingredients Routes (alias of inventory) ---
 // GET all ingredients
 app.get('/api/ingredients', async (req, res) => {

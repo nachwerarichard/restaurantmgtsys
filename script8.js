@@ -1434,7 +1434,7 @@ window.openRecipeEditModal = (item) => {
     document.getElementById('recipe-edit-modal').classList.remove('hidden');
 };
 
-document.getElementById('modal-close-btn').addEventListener('click', closeRecipeEditModal);
+document.getElementById('close-modal-btn').addEventListener('click', closeRecipeEditModal);
 
 function closeRecipeEditModal() {
     editingMenuItem = null;

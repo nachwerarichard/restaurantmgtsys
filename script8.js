@@ -211,8 +211,7 @@ const allowedRoles = {
     'inventory-management': ['admin'],
     'expenses': ['admin'],
     'reports': ['admin'],
-    'menu-management': ['admin', 'waiter'],
-    'auditlogs': ['admin']
+    'menu-management': ['admin', 'waiter']
 };
 
 function checkUserRole(requiredRoles) {
@@ -298,8 +297,7 @@ async function showSection(sectionId) {
         'inventory-management': ['admin'],
         'expenses': ['admin'],
         'reports': ['admin'],
-        'menu-management': ['admin', 'waiter'],// Waiter can see the menu
-        'auditlogs': ['admin']
+        'menu-management': ['admin', 'waiter'] // Waiter can see the menu
     };
 
     if (!checkUserRole(sectionRoles[sectionId])) {
@@ -418,8 +416,7 @@ async function initializeApp(userRole) {
             'inventory-management': ['admin'],
             'expenses': ['admin'],
             'reports': ['admin'],
-            'menu-management': ['admin', 'waiter'],
-            'auditlogs': ['admin']
+            'menu-management': ['admin', 'waiter']
         };
 
         if (!checkUserRole(allowedRoles[sectionId])) {

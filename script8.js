@@ -207,6 +207,7 @@ const logoutButton = document.getElementById('logout-btn');
  * @param {string[]} allowedRoles - An array of roles that can access the section.
  * @returns {boolean} True if the current user role is in the allowed roles.
  */
+    const usernameInput = document.getElementById('username').value.trim();
 
 const allowedRoles = {
                 'order-management': ['admin', 'waiter'],

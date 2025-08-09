@@ -211,7 +211,8 @@ const allowedRoles = {
     'inventory-management': ['admin'],
     'expenses': ['admin'],
     'reports': ['admin'],
-    'menu-management': ['admin', 'waiter']
+    'menu-management': ['admin', 'waiter'],
+    'auditlogs': ['admin']
 };
 
 function checkUserRole(requiredRoles) {
@@ -364,6 +365,10 @@ async function showSection(sectionId) {
  * Handles navigation link clicks.
  * @param {Event} event - The click event.
  */
+
+navLinks.forEach(link => {
+    link.addEventListener('click', handleNavLinkClick);
+});
 async function handleNavLinkClick(event) {
     event.preventDefault();
     const targetElement = event.currentTarget;
@@ -416,7 +421,8 @@ async function initializeApp(userRole) {
             'inventory-management': ['admin'],
             'expenses': ['admin'],
             'reports': ['admin'],
-            'menu-management': ['admin', 'waiter']
+            'menu-management': ['admin', 'waiter'],
+            'auditlogs': ['admin']
         };
 
         if (!checkUserRole(allowedRoles[sectionId])) {

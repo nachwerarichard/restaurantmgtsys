@@ -122,12 +122,19 @@ body {
     margin-right: 12px;
 }
 
-.main-content {
+/* The new main container to hold header and content side-by-side with the sidebar */
+.main-container {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: #f3f4f6;
     overflow: hidden;
+    background-color: #f3f4f6;
+}
+
+.main-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto; /* This allows the main content area to scroll independently */
 }
 
 /* Top Bar */
@@ -832,8 +839,11 @@ h2 {
         height: 24px;
     }
 
-    .main-content {
+    .main-container {
         width: 100%;
+    }
+
+    .main-content {
         padding-top: 60px;
     }
 
@@ -914,6 +924,13 @@ h2 {
 
     .sidebar-overlay {
         display: none !important;
+    }
+    
+    .main-container {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
     }
 
     .main-content {

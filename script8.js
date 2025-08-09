@@ -224,7 +224,6 @@ const allowedRoles = {
         'Martha': { password: '123', role: 'waiter' }
     };
 
-let currentUserRole = null;
 function checkUserRole(allowedRoles) {
     if (!currentUserRole) {
         return false;

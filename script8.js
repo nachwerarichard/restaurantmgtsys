@@ -1,5 +1,5 @@
 const BACKEND_API_URL = 'https://restaurantmgtsys.onrender.com/api';
-const POLLING_INTERVAL = 10000; // 10 seconds for polling (adjust as needed)
+const POLLING_INTERVAL = 5000; // 10 seconds for polling (adjust as needed)
 
 // --- In-memory state ---
 let currentOrder = [];

@@ -1627,7 +1627,7 @@ async function renderAuditLogs() {
     try {
         // Fetch the audit logs from the backend.
         // It's assumed your API has a route like `/auditlogs` that returns a list of log objects.
-        const auditLogs = await fetchData(`${BACKEND_API_URL}/auditlogs`);
+       const auditLogs = await fetchData(${BACKEND_API_URL}/api/auditlogs);
 
         if (auditLogs.length === 0) {
             // Display a message if no logs are found.

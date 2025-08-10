@@ -1627,7 +1627,8 @@ async function renderAuditLogs() {
     try {
         // Fetch the audit logs from the backend.
         // It's assumed your API has a route like `/auditlogs` that returns a list of log objects.
-const auditLogs = await fetchData(\${BACKEND_API_URL}/auditlogs`);`
+const auditLogs = await fetchData(${BACKEND_API_URL}/auditlogs);
+
 
 
 

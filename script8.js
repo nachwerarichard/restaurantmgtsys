@@ -718,10 +718,20 @@ async function checkNewOrdersForChef() {
         const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
         const newOrderCount = orders.filter(order => order.status === 'New').length;
 
-        if (lastKitchenOrderCount > 0 && newOrderCount > lastKitchenOrderCount) {
-            showMessageBox(`New Order Alert! You have ${newOrderCount - lastKitchenOrderCount} new order(s) to prepare.`);
+        // Check if there's an increase in the number of new orders
+        // The condition `lastKitchenOrderCount !== newOrderCount` is more robust
+        // It covers the initial case (0 to 1) and any subsequent new orders
+        if (newOrderCount > lastKitchenOrderCount) {
+            // Only show a message if there are new orders to notify about
+            const ordersToNotify = newOrderCount - lastKitchenOrderCount;
+            if (ordersToNotify > 0) {
+                showMessageBox(`New Order Alert! You have ${ordersToNotify} new order(s) to prepare.`);
+            }
         }
+        
+        // Always update the last count, regardless of whether a notification was shown
         lastKitchenOrderCount = newOrderCount;
+
     } catch (error) {
         console.error("Error checking for new orders:", error);
     }

@@ -354,6 +354,9 @@ async function showSection(sectionId) {
         await populateRecipeIngredientSelect(); // Populate ingredients for recipe builder
         renderCurrentRecipe(); // Render the current menu item's recipe (if editing)
         messageBox.classList.add('hidden');
+    } else if (sectionId === 'auditlogs') {
+        renderAuditLogs();
+        messageBox.classList.add('hidden');
     }
 
     // Hide sidebar on mobile after navigation

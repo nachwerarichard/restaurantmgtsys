@@ -17,7 +17,7 @@ app.use(express.json()); // Enable parsing of JSON request bodies
 app.use(cors()); // Enable CORS for all routes, allowing frontend to connect
 
 // --- Database Connection ---
-const MONGODB_URI = process.env.MONGODB_URI; // Get MongoDB URI from environment variables
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/restaurant-db'; // Get MongoDB URI from environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // Secret for JWT
 
 mongoose.connect(MONGODB_URI)
@@ -166,6 +166,34 @@ const createAuditLog = async (user, action, details) => {
     }
 };
 
+// --- Middleware for Authentication and Authorization ---
+
+// Middleware to verify JWT token and attach user data to the request
+const authMiddleware = (req, res, next) => {
+    const token = req.header('Authorization');
+    if (!token) {
+        return res.status(401).json({ message: 'Authorization token missing.' });
+    }
+
+    try {
+        // The token is typically in the format "Bearer <token>"
+        const decoded = jwt.verify(token.replace('Bearer ', ''), JWT_SECRET);
+        req.user = decoded; // Attach user payload (userId and role) to request
+        next();
+    } catch (error) {
+        res.status(401).json({ message: 'Invalid or expired token.' });
+    }
+};
+
+// Middleware to check if the authenticated user has an 'admin' role
+const adminMiddleware = (req, res, next) => {
+    if (req.user && req.user.role === 'admin') {
+        next();
+    } else {
+        res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+};
+
 
 // --- Controllers (Logic for API Endpoints) ---
 
@@ -185,7 +213,7 @@ const menuController = {
 
         try {
             const savedMenuItem = await newMenuItem.save();
-            await createAuditLog('admin', 'create_menu_item', `Created new menu item: ${savedMenuItem.name}`);
+            await createAuditLog(req.user.username, 'create_menu_item', `Created new menu item: ${savedMenuItem.name}`);
             const populatedMenuItem = await MenuItem.findById(savedMenuItem._id).populate('recipe.ingredient');
             res.status(201).json(populatedMenuItem);
         } catch (error) {
@@ -209,7 +237,7 @@ const menuController = {
             if (!updatedMenuItem) {
                 return res.status(404).json({ message: 'Menu item not found' });
             }
-            await createAuditLog('admin', 'update_menu_item', `Updated menu item: ${updatedMenuItem.name}`);
+            await createAuditLog(req.user.username, 'update_menu_item', `Updated menu item: ${updatedMenuItem.name}`);
             res.status(200).json(updatedMenuItem);
         } catch (error) {
             if (error.code === 11000) {
@@ -226,7 +254,7 @@ const menuController = {
             if (!deletedMenuItem) {
                 return res.status(404).json({ message: 'Menu item not found' });
             }
-            await createAuditLog('admin', 'delete_menu_item', `Deleted menu item: ${deletedMenuItem.name}`);
+            await createAuditLog(req.user.username, 'delete_menu_item', `Deleted menu item: ${deletedMenuItem.name}`);
             res.status(200).json({ message: 'Menu item deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -250,7 +278,7 @@ const inventoryController = {
 
         try {
             const savedIngredient = await newIngredient.save();
-            await createAuditLog('admin', 'create_ingredient', `Created new ingredient: ${savedIngredient.name}`);
+            await createAuditLog(req.user.username, 'create_ingredient', `Created new ingredient: ${savedIngredient.name}`);
             res.status(201).json(savedIngredient);
         } catch (error) {
             if (error.code === 11000) {
@@ -273,7 +301,7 @@ const inventoryController = {
             if (!updatedIngredient) {
                 return res.status(404).json({ message: 'Ingredient not found' });
             }
-            await createAuditLog('admin', 'update_ingredient', `Updated ingredient: ${updatedIngredient.name}`);
+            await createAuditLog(req.user.username, 'update_ingredient', `Updated ingredient: ${updatedIngredient.name}`);
             res.status(200).json(updatedIngredient);
         } catch (error) {
             if (error.code === 11000) {
@@ -290,7 +318,7 @@ const inventoryController = {
             if (!deletedIngredient) {
                 return res.status(404).json({ message: 'Ingredient not found' });
             }
-            await createAuditLog('admin', 'delete_ingredient', `Deleted ingredient: ${deletedIngredient.name}`);
+            await createAuditLog(req.user.username, 'delete_ingredient', `Deleted ingredient: ${deletedIngredient.name}`);
             res.status(200).json({ message: 'Ingredient deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -330,7 +358,7 @@ const expenseController = {
 
         try {
             const savedExpense = await newExpense.save();
-            await createAuditLog('admin', 'create_expense', `Recorded a new expense: ${description} for $${amount}`);
+            await createAuditLog(req.user.username, 'create_expense', `Recorded a new expense: ${description} for $${amount}`);
             res.status(201).json(savedExpense);
         } catch (error) {
             res.status(400).json({ message: error.message });
@@ -350,7 +378,7 @@ const expenseController = {
             if (!updatedExpense) {
                 return res.status(404).json({ message: 'Expense not found' });
             }
-            await createAuditLog('admin', 'update_expense', `Updated expense for: ${description}`);
+            await createAuditLog(req.user.username, 'update_expense', `Updated expense for: ${description}`);
             res.status(200).json(updatedExpense);
         } catch (error) {
             res.status(400).json({ message: error.message });
@@ -364,7 +392,7 @@ const expenseController = {
             if (!deletedExpense) {
                 return res.status(404).json({ message: 'Expense not found' });
             }
-            await createAuditLog('admin', 'delete_expense', `Deleted expense: ${deletedExpense.description}`);
+            await createAuditLog(req.user.username, 'delete_expense', `Deleted expense: ${deletedExpense.description}`);
             res.status(200).json({ message: 'Expense deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -399,7 +427,7 @@ const kitchenOrderController = {
 
         try {
             const savedOrder = await newOrder.save();
-            await createAuditLog('waiter', 'create_order', `Created new kitchen order #${savedOrder._id}`);
+            await createAuditLog(req.user.username, 'create_order', `Created new kitchen order #${savedOrder._id}`);
             // Populate menu item details for response
             const populatedOrder = await KitchenOrder.findById(savedOrder._id).populate('items.menuItem');
             res.status(201).json(populatedOrder);
@@ -559,7 +587,7 @@ const kitchenOrderController = {
                 await order.save({ session });
 
                 await session.commitTransaction();
-                await createAuditLog('waiter', 'mark_order_ready', `Order #${order._id} marked as ready.`);
+                await createAuditLog(req.user.username, 'mark_order_ready', `Order #${order._id} marked as ready.`);
                 res.status(200).json({ message: `Order ${id} marked as Ready! Inventory updated and sales recorded.`, order });
 
             } catch (transactionError) {
@@ -590,7 +618,7 @@ const kitchenOrderController = {
 
             order.status = 'Cancelled';
             const updatedOrder = await order.save();
-            await createAuditLog('waiter', 'cancel_order', `Order #${id} was cancelled.`);
+            await createAuditLog(req.user.username, 'cancel_order', `Order #${id} was cancelled.`);
             res.status(200).json({ message: `Order ${id} has been cancelled.`, order: updatedOrder });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -677,6 +705,34 @@ const reportController = {
     }
 };
 
+// --- NEW Audit Log Controller ---
+const auditLogController = {
+    getAuditLogs: async (req, res) => {
+        const { startDate: startDateStr, endDate: endDateStr } = req.query;
+        const { startDate, endDate, error } = validateDateRange(startDateStr, endDateStr);
+
+        if (error) {
+            return res.status(400).json({ message: error });
+        }
+
+        let query = {};
+        if (startDate && endDate) {
+            query.timestamp = { $gte: startDate, $lte: endDate };
+        } else if (startDate) {
+            query.timestamp = { $gte: startDate };
+        } else if (endDate) {
+            query.timestamp = { $lte: endDate };
+        }
+
+        try {
+            const logs = await AuditLog.find(query).sort({ timestamp: -1 });
+            res.status(200).json(logs);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+};
+
 // --- API Routes ---
 
 // Basic route for testing the server
@@ -700,9 +756,9 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user._id, role: user.role, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
         await createAuditLog('system', 'user_login_success', `User ${user.username} logged in successfully.`);
-        res.status(200).json({ token, role: user.role });
+        res.status(200).json({ token, role: user.role, username: user.username });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Server error during login.' });
@@ -721,119 +777,62 @@ app.post('/api/logout', async (req, res) => {
     }
 });
 
-// --- Ingredients Routes (alias of inventory) ---
-// GET all ingredients
-app.get('/api/ingredients', async (req, res) => {
+// --- User Management (Admin only) ---
+// This is an additional route for creating new users (e.g., a new waiter or admin)
+app.post('/api/users', authMiddleware, adminMiddleware, async (req, res) => {
+    const { username, password, role } = req.body;
     try {
-        const ingredients = await Ingredient.find({});
-        res.status(200).json(ingredients);
+        const newUser = new User({ username, password, role });
+        const savedUser = await newUser.save();
+        await createAuditLog(req.user.username, 'create_user', `Created new user: ${savedUser.username} with role ${savedUser.role}`);
+        res.status(201).json({ message: 'User created successfully', user: { username: savedUser.username, role: savedUser.role } });
     } catch (error) {
-        console.error('Error fetching ingredients:', error);
-        res.status(500).json({ message: 'Server error fetching ingredients.' });
-    }
-});
-
-// POST a new ingredient
-app.post('/api/ingredients', async (req, res) => {
-    const { name, quantity, unit, costPerUnit } = req.body;
-    try {
-        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit });
-        await newIngredient.save();
-        await createAuditLog('admin', 'create_ingredient', `Created new ingredient via API: ${name}`);
-        res.status(201).json(newIngredient);
-    } catch (error) {
-        console.error('Error adding ingredient:', error);
+        if (error.code === 11000) {
+            return res.status(409).json({ message: 'Username already exists.' });
+        }
         res.status(400).json({ message: error.message });
     }
 });
 
-// PUT (update) an ingredient by ID
-app.put('/api/ingredients/:id', async (req, res) => {
-    const { name, quantity, unit, costPerUnit } = req.body;
-    try {
-        const updatedIngredient = await Ingredient.findByIdAndUpdate(
-            req.params.id,
-            { name, quantity, unit, costPerUnit },
-            { new: true, runValidators: true }
-        );
-        if (!updatedIngredient) {
-            return res.status(404).json({ message: 'Ingredient not found.' });
-        }
-        await createAuditLog('admin', 'update_ingredient', `Updated ingredient via API: ${name}`);
-        res.status(200).json(updatedIngredient);
-    } catch (error) {
-        console.error('Error updating ingredient:', error);
-        res.status(400).json({ message: error.message });
-    }
-});
-
-// DELETE an ingredient by ID
-app.delete('/api/ingredients/:id', async (req, res) => {
-    try {
-        const deletedIngredient = await Ingredient.findByIdAndDelete(req.params.id);
-        if (!deletedIngredient) {
-            return res.status(404).json({ message: 'Ingredient not found.' });
-        }
-        await createAuditLog('admin', 'delete_ingredient', `Deleted ingredient via API: ${deletedIngredient.name}`);
-        res.status(200).json({ message: 'Ingredient deleted successfully.' });
-    } catch (error) {
-        console.error('Error deleting ingredient:', error);
-        res.status(500).json({ message: 'Server error deleting ingredient.' });
-    }
-});
-
-// --- NEW Audit Log Routes ---
-app.get('/api/auditlogs', async (req, res) => {
-    try {
-        // Fetch all audit logs, sorted by timestamp descending (newest first)
-        const logs = await AuditLog.find().sort({ timestamp: -1 });
-        res.status(200).json(logs);
-    } catch (error) {
-        console.error('Error fetching audit logs:', error);
-        res.status(500).json({ message: 'Server error fetching audit logs.' });
-    }
-});
-
-// Menu Item Routes
+// --- Menu Item Routes (Admin only for CUD) ---
 app.get('/api/menu', menuController.getAllMenuItems);
-app.post('/api/menu', menuController.createMenuItem);
-app.put('/api/menu/:id', menuController.updateMenuItem);
-app.delete('/api/menu/:id', menuController.deleteMenuItem);
+app.post('/api/menu', authMiddleware, adminMiddleware, menuController.createMenuItem);
+app.put('/api/menu/:id', authMiddleware, adminMiddleware, menuController.updateMenuItem);
+app.delete('/api/menu/:id', authMiddleware, adminMiddleware, menuController.deleteMenuItem);
 
-// Inventory Routes
-app.get('/api/inventory', inventoryController.getAllIngredients);
-app.post('/api/inventory', inventoryController.createIngredient);
-app.put('/api/inventory/:id', inventoryController.updateIngredient);
-app.delete('/api/inventory/:id', inventoryController.deleteIngredient);
+// --- Inventory/Ingredients Routes (Admin only for CUD) ---
+app.get('/api/ingredients', authMiddleware, adminMiddleware, inventoryController.getAllIngredients);
+app.post('/api/ingredients', authMiddleware, adminMiddleware, inventoryController.createIngredient);
+app.put('/api/ingredients/:id', authMiddleware, adminMiddleware, inventoryController.updateIngredient);
+app.delete('/api/ingredients/:id', authMiddleware, adminMiddleware, inventoryController.deleteIngredient);
 
-// Expense Routes
-app.get('/api/expenses', expenseController.getAllExpenses);
-app.post('/api/expenses', expenseController.createExpense);
-app.put('/api/expenses/:id', expenseController.updateExpense);
-app.delete('/api/expenses/:id', expenseController.deleteExpense);
+// --- Expense Routes (Admin only for all) ---
+app.get('/api/expenses', authMiddleware, adminMiddleware, expenseController.getAllExpenses);
+app.post('/api/expenses', authMiddleware, adminMiddleware, expenseController.createExpense);
+app.put('/api/expenses/:id', authMiddleware, adminMiddleware, expenseController.updateExpense);
+app.delete('/api/expenses/:id', authMiddleware, adminMiddleware, expenseController.deleteExpense);
 
-// Kitchen Order Routes
-app.post('/api/kitchen-orders', kitchenOrderController.createKitchenOrder);
-app.get('/api/kitchen-orders', kitchenOrderController.getAllKitchenOrders);
-app.put('/api/kitchen-orders/:id/ready', kitchenOrderController.markOrderReady); // Specific action route
-app.put('/api/kitchen-orders/:id/cancel', kitchenOrderController.cancelKitchenOrder); // Specific action route
+// --- Kitchen Order Routes (Waiter and Admin) ---
+app.get('/api/orders', authMiddleware, kitchenOrderController.getAllKitchenOrders);
+app.post('/api/orders', authMiddleware, kitchenOrderController.createKitchenOrder);
+app.put('/api/orders/:id/ready', authMiddleware, kitchenOrderController.markOrderReady);
+app.put('/api/orders/:id/cancel', authMiddleware, kitchenOrderController.cancelKitchenOrder);
 
-// Sales Routes (Sales are primarily generated by kitchen orders, so read-only for frontend)
-app.get('/api/sales', salesController.getAllSales);
+// --- Sales Routes (Admin only) ---
+app.get('/api/sales', authMiddleware, adminMiddleware, salesController.getAllSales);
 
-// Report Routes
-app.get('/api/reports/financial', reportController.generateFinancialReport);
+// --- Reporting Routes (Admin only) ---
+app.get('/api/reports/financial', authMiddleware, adminMiddleware, reportController.generateFinancialReport);
 
+// --- Audit Log Routes (Admin only) ---
+// Note: The middleware has been temporarily removed for easier debugging.
+// In a production environment, you should use:
+// app.get('/api/audit-logs', authMiddleware, adminMiddleware, auditLogController.getAuditLogs);
+app.get('/api/audit-logs', auditLogController.getAuditLogs);
 
-// --- Global Error Handling Middleware ---
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Something went wrong on the server!', error: err.message });
-});
-
-// --- Start the Server ---
-const PORT = process.env.PORT || 5000; // Use port from .env or default to 5000
+// Start the server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    console.log(`Access API at http://localhost:${PORT}/api`);
 });
+

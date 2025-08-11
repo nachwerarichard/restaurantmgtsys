@@ -564,7 +564,7 @@ function renderCurrentOrder() {
                 listItem.classList.add('order-list-item');
                 listItem.innerHTML = `
                     <span>${menuItem.name} x ${orderItem.quantity}</span>
-                    <span>$${(menuItem.price * orderItem.quantity).toFixed(2)}</span>
+                    <span>ugshs${(menuItem.price * orderItem.quantity).toFixed(2)}</span>
                     <button onclick="removeOrderItem(${index})">&times;</button>
                 `;
                 currentOrderList.appendChild(listItem);

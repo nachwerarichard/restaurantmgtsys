@@ -1526,13 +1526,10 @@ function renderModalRecipeTable(recipeArray) {
     recipeArray.forEach((rItem, index) => {
         const ingredient = allIngredients.find(i => i._id === rItem.ingredient);
         const name = ingredient?.name || 'Unknown';
-        const unit = ingredient?.unit || '';
 
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${name}</td>
-            <td><input type="number" min="0" step="0.01" value="${rItem.quantityUsed}" onchange="updateIngredientQuantity(${index}, this.value)"></td>
-            <td>${unit}</td>
             <td>
                 <button onclick="deleteIngredientFromRecipe(${index})" class="delete">Delete</button>
             </td>

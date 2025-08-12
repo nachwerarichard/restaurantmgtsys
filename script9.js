@@ -822,12 +822,7 @@ async function renderSalesTransactions() {
                 <td class="text-gray">${transaction.itemSold}</td>
                 <td class="text-gray">${transaction.quantity}</td>
                 <td class="text-gray">Ugshs${transaction.amount.toFixed(2)}</td>
-                <td class="text-gray">Ugshs${transaction.costOfGoods.toFixed(2)}</td>
-                <td class="text-gray">Ugshs${transaction.profit.toFixed(2)}</td>
-                <td class="text-gray">${transaction.paymentMethod}</td>
-                <td class="table-actions">
-                    <button class="view-details">View Only</button>
-                </td>
+                
             `;
             salesTransactionsTableBody.appendChild(row);
         });

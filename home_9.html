@@ -213,78 +213,87 @@
                     </div>
                 </section>
 
-                <section id="inventory-management" class="content-section">
-                    <h2>Inventory Management</h2>
-                    <div class="date-filter-container">
-                        <div class="form-group">
-                            <label for="inventory-start-date">Start Date:</label>
-                            <input type="date" id="inventory-start-date">
-                        </div>
-                        <div class="form-group">
-                            <label for="inventory-end-date">End Date:</label>
-                            <input type="date" id="inventory-end-date">
-                        </div>
-                        <button id="filter-inventory-btn">Filter Inventory</button>
-                    </div>
-                    <div class="section-card">
-                        <h3>Raw Ingredients Stock</h3>
+<section id="inventory-management" class="content-section">
+    <h2>Inventory Management</h2>
+    <div class="date-filter-container">
+        <div class="form-group">
+            <label for="inventory-start-date">Start Date:</label>
+            <input type="date" id="inventory-start-date">
+        </div>
+        <div class="form-group">
+            <label for="inventory-end-date">End Date:</label>
+            <input type="date" id="inventory-end-date">
+        </div>
+        <button id="filter-inventory-btn">Filter Inventory</button>
+    </div>
+    <div class="section-card">
+        <h3>Raw Ingredients Stock</h3>
 
-                        <form id="inventory-form" class="form-card">
-                            <h4>Add/Edit Ingredient</h4>
-                            <input type="hidden" id="ingredient-id">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="ingredient-name">Ingredient Name</label>
-                                    <input type="text" id="ingredient-name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="ingredient-quantity">Quantity</label>
-                                    <input type="number" id="ingredient-quantity" step="0.01" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="ingredient-unit">Unit (e.g., kg, liter, pcs)</label>
-                                    <input type="text" id="ingredient-unit" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="ingredient-cost-per-unit">Cost Per Unit (Ugsh)</label>
-                                    <input type="number" id="ingredient-cost-per-unit" step="0.01" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="ingredient-unit">Spoilage</label>
-                                    <input type="text" id="ingredient-spoilage" >
-                                </div>
-                            </div>
-                            <div class="form-buttons">
-                                <button type="submit">
-                                    Save Ingredient
-                                </button>
-                                <button type="button" id="cancel-ingredient-edit-btn" class="cancel-button hidden">
-                                    Cancel Edit
-                                </button>
-                            </div>
-                        </form>
+        <form id="inventory-form" class="form-card">
+            <h4>Add/Edit Ingredient</h4>
+            <input type="hidden" id="ingredient-id">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="ingredient-name">Ingredient Name</label>
+                    <input type="text" id="ingredient-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="inventory-date">Date</label>
+                    <input type="date" id="inventory-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="ingredient-opening-stock">Opening Stock</label>
+                    <input type="number" id="ingredient-opening-stock" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="ingredient-sold-stock">Sold Stock</label>
+                    <input type="number" id="ingredient-sold-stock" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="ingredient-closing-stock">Closing Stock</label>
+                    <input type="number" id="ingredient-closing-stock" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="ingredient-spoiled-stock">Spoiled Stock</label>
+                    <input type="number" id="ingredient-spoiled-stock" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="ingredient-unit">Unit (e.g., kg, liter, pcs)</label>
+                    <input type="text" id="ingredient-unit" required>
+                </div>
+            </div>
+            <div class="form-buttons">
+                <button type="submit">
+                    Save Ingredient
+                </button>
+                <button type="button" id="cancel-ingredient-edit-btn" class="cancel-button hidden">
+                    Cancel Edit
+                </button>
+            </div>
+        </form>
 
-                        <div class="table-container">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Name</th>
-                                        <th>Quantity</th>
-                                        <th>Unit</th>
-                                        <th>Cost/Unit</th>
-                                        <th>Spoilage</th>
-                                        <th>Total Value</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="inventory-items-table-body">
-                                    </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Unit</th>
+                        <th>Opening Stock</th>
+                        <th>Sold Stock</th>
+                        <th>Closing Stock</th>
+                        <th>Spoiled Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-items-table-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+                
                 <section id="expenses" class="content-section">
                     <h2>Expenses Management</h2>
                     <div class="date-filter-container">

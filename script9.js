@@ -853,7 +853,6 @@ const ingredientOpeningStockInput = document.getElementById('ingredient-opening-
 const ingredientSoldStockInput = document.getElementById('ingredient-sold-stock');
 const ingredientClosingStockInput = document.getElementById('ingredient-closing-stock');
 const ingredientSpoiledStockInput = document.getElementById('ingredient-spoiled-stock');
-const inventoryEndDateInput = document.getElementById('inventory-end-date');
 const filterInventoryBtn = document.getElementById('filter-inventory-btn');
 
 async function renderInventoryItems(startDate = null, endDate = null) {

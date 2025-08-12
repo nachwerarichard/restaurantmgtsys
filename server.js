@@ -238,47 +238,55 @@ const menuController = {
 const inventoryController = {
     getAllIngredients: async (req, res) => {
         try {
-            const ingredients = await Ingredient.find();
+            const { startDate, endDate } = req.query;
+            let query = {};
+
+            if (startDate) {
+                // Find items on or after the start date
+                query.date = { $gte: new Date(startDate) };
+            }
+            if (endDate) {
+                // Find items on or before the end date, including the end of the day
+                const endOfDay = new Date(endDate);
+                endOfDay.setHours(23, 59, 59, 999);
+                query.date = { ...query.date, $lte: endOfDay };
+            }
+
+            const ingredients = await Ingredient.find(query).sort({ date: 1 });
             res.status(200).json(ingredients);
         } catch (error) {
             res.status(500).json({ message: error.message });
         }
     },
     createIngredient: async (req, res) => {
-        const { name, quantity, unit, costPerUnit, spoilage } = req.body;
-        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit, spoilage });
+        const { name, unit, date, openingStock, soldStock, closingStock, spoiledStock } = req.body;
+        const newIngredient = new Ingredient({ name, unit, date, openingStock, soldStock, closingStock, spoiledStock });
 
         try {
             const savedIngredient = await newIngredient.save();
-            await createAuditLog('admin', 'create_ingredient', `Created new ingredient: ${savedIngredient.name}`);
+            await createAuditLog('admin', 'create_ingredient', `Created new inventory entry for: ${savedIngredient.name}`);
             res.status(201).json(savedIngredient);
         } catch (error) {
-            if (error.code === 11000) {
-                return res.status(409).json({ message: 'Ingredient with this name already exists.' });
-            }
             res.status(400).json({ message: error.message });
         }
     },
     updateIngredient: async (req, res) => {
         const { id } = req.params;
-        const { name, quantity, unit, costPerUnit, spoilage } = req.body;
+        const { name, unit, date, openingStock, soldStock, closingStock, spoiledStock } = req.body;
 
         try {
             const updatedIngredient = await Ingredient.findByIdAndUpdate(
                 id,
-                { name, quantity, unit, costPerUnit, spoilage },
+                { name, unit, date, openingStock, soldStock, closingStock, spoiledStock },
                 { new: true, runValidators: true }
             );
 
             if (!updatedIngredient) {
                 return res.status(404).json({ message: 'Ingredient not found' });
             }
-            await createAuditLog('admin', 'update_ingredient', `Updated ingredient: ${updatedIngredient.name}`);
+            await createAuditLog('admin', 'update_ingredient', `Updated inventory entry for: ${updatedIngredient.name}`);
             res.status(200).json(updatedIngredient);
         } catch (error) {
-            if (error.code === 11000) {
-                return res.status(409).json({ message: 'Ingredient with this name already exists.' });
-            }
             res.status(400).json({ message: error.message });
         }
     },
@@ -290,7 +298,7 @@ const inventoryController = {
             if (!deletedIngredient) {
                 return res.status(404).json({ message: 'Ingredient not found' });
             }
-            await createAuditLog('admin', 'delete_ingredient', `Deleted ingredient: ${deletedIngredient.name}`);
+            await createAuditLog('admin', 'delete_ingredient', `Deleted inventory entry for: ${deletedIngredient.name}`);
             res.status(200).json({ message: 'Ingredient deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -298,6 +306,7 @@ const inventoryController = {
     }
 };
 
+module.exports = inventoryController;
 // --- Expense Controllers ---
 const expenseController = {
     getAllExpenses: async (req, res) => {

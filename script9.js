@@ -1232,7 +1232,6 @@ async function populateRecipeIngredientSelect() {
         allIngredients.forEach(ingredient => {
             const option = document.createElement('option');
             option.value = ingredient._id;
-            option.textContent = `${ingredient.name} (${ingredient.unit})`;
             recipeIngredientSelect.appendChild(option);
         });
     } catch (error) {
@@ -1255,7 +1254,7 @@ function renderCurrentRecipe() {
                 const listItem = document.createElement('li');
                 listItem.classList.add('order-list-item');
                 listItem.innerHTML = `
-                    <span>${ingredient.name}: ${recipeItem.quantityUsed.toFixed(2)} ${ingredient.unit}</span>
+                    <span>${ingredient.name} </span>
                     <button onclick="removeRecipeIngredient(${index})">&times;</button>
                 `;
                 currentRecipeList.appendChild(listItem);
@@ -1273,9 +1272,8 @@ addRecipeIngredientBtn.addEventListener('click', () => {
         return;
     }
     const selectedIngredientId = recipeIngredientSelect.value;
-    const quantityUsed = parseFloat(recipeQuantityUsedInput.value);
 
-    if (!selectedIngredientId || isNaN(quantityUsed) || quantityUsed <= 0) {
+    if (!selectedIngredientId ) {
         showMessageBox('Please select an ingredient and enter a valid quantity used.');
         return;
     }
@@ -1284,7 +1282,6 @@ addRecipeIngredientBtn.addEventListener('click', () => {
     const existingRecipeItemIndex = currentRecipe.findIndex(item => item.ingredient === selectedIngredientId);
     if (existingRecipeItemIndex > -1) {
         // Update quantity if already exists
-        currentRecipe[existingRecipeItemIndex].quantityUsed += quantityUsed;
     } else {
         // Add new ingredient to recipe
         currentRecipe.push({ ingredient: selectedIngredientId, quantityUsed: quantityUsed });
@@ -1292,7 +1289,6 @@ addRecipeIngredientBtn.addEventListener('click', () => {
 
     renderCurrentRecipe();
     recipeIngredientSelect.value = ''; // Reset select
-    recipeQuantityUsedInput.value = '0'; // Reset quantity
 });
 
 /**
@@ -1325,8 +1321,8 @@ async function renderMenuItems() {
             const recipeDisplay = item.recipe && item.recipe.length > 0
                 ? item.recipe.map(rItem => {
                     const ingredientName = rItem.ingredient?.name || 'Unknown';
-                    const ingredientUnit = rItem.ingredient?.unit || '';
-                    return `${ingredientName} (${rItem.quantityUsed.toFixed(2)} ${ingredientUnit})`;
+                    
+                    return `${ingredientName} `;
                 }).join(', ')
                 : 'N/A';
 
@@ -1429,8 +1425,7 @@ window.editMenuItem = async (id) => {
             itemPriceInput.value = itemToEdit.price;
             itemCategoryInput.value = itemToEdit.category;
             currentRecipe = itemToEdit.recipe.map(rItem => ({
-                ingredient: rItem.ingredient._id,
-                quantityUsed: rItem.quantityUsed
+                ingredient: rItem.ingredient._id
             }));
             renderCurrentRecipe();
             cancelMenuEditBtn.classList.remove('hidden');

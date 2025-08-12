@@ -1232,12 +1232,14 @@ async function populateRecipeIngredientSelect() {
         allIngredients.forEach(ingredient => {
             const option = document.createElement('option');
             option.value = ingredient._id;
+            option.textContent = `${ingredient.name} (${ingredient.unit})`;
             recipeIngredientSelect.appendChild(option);
         });
     } catch (error) {
         // Error handled by fetchData
     }
 }
+
 
 /**
  * Renders the current recipe list (in-memory) for the menu item being edited/added.

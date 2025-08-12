@@ -887,7 +887,6 @@ inventoryForm.addEventListener('submit', async (event) => {
 
     const id = ingredientIdInput.value;
     const name = ingredientNameInput.value.trim();
-    const costPerUnit = parseFloat(ingredientCostPerUnitInput.value);
 
     if (!name || isNaN(costPerUnit) || costPerUnit < 0) {
         showMessageBox('Please fill in the ingredient name and a valid cost.');

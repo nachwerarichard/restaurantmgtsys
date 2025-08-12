@@ -1,607 +1,839 @@
+// server.js - Full Node.js Express application with MongoDB (Mongoose)
+
+// Load environment variables from .env file
 require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const nodemailer = require('nodemailer');
-const cors = require('cors');
 
+const express = require('express'); // Import Express framework
+const mongoose = require('mongoose'); // Import Mongoose for MongoDB interaction
+const cors = require('cors'); // Import CORS middleware for cross-origin requests
+const jwt = require('jsonwebtoken'); // Import JWT for creating and verifying tokens
+const bcrypt = require('bcryptjs'); // Import bcryptjs for password hashing
+
+// Initialize Express app
 const app = express();
-app.use(express.json());
 
-// CORS config - allow your frontend origin
-app.use(cors({
-  origin: 'https://stirring-pony-fe2347.netlify.app', // Ensure this matches your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// Middleware
+app.use(express.json()); // Enable parsing of JSON request bodies
+app.use(cors()); // Enable CORS for all routes, allowing frontend to connect
 
-// --- !!! WARNING: SERIOUS SECURITY VULNERABILITY !!! ---
-// Hardcoding users for demonstration purposes only.
-// DO NOT USE THIS IN PRODUCTION OR FOR ANY REAL APPLICATION.
-const HARDCODED_USERS = {
-    'Nachwera Richard': { password: '123', role: 'Nachwera Richard' },
-    'Nelson': { password: '123', role: 'Nelson' },
-    'Florence': { password: '123', role: 'Florence' },
-    'Martha': { password: '456', role: 'Martha' },
-    'Joshua': { password: '456', role: 'Joshua' }
-};
-// --- !!! END OF WARNING !!! ---
+// --- Database Connection ---
+const MONGODB_URI = process.env.MONGODB_URI; // Get MongoDB URI from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // Secret for JWT
 
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('MongoDB connected');
-}).catch(err => console.error('MongoDB connection error:', err));
-
-// --- NEW: Audit Log Schema ---
-const AuditLog = mongoose.model('AuditLog', new mongoose.Schema({
-  action: { type: String, required: true }, // e.g., 'Login', 'Logout', 'Sale Created', 'Inventory Updated'
-  user: { type: String, required: true }, // Username of the person performing the action
-  timestamp: { type: Date, default: Date.now },
-  details: { type: mongoose.Schema.Types.Mixed } // Store relevant details about the action
-}));
-
-// --- NEW: Helper function to create audit log entries ---
-async function logAction(action, user, details = {}) {
-  try {
-    await AuditLog.create({ action, user, details });
-  } catch (error) {
-    console.error('Error logging audit action:', error);
-  }
-}
-
-// --- MODIFIED: Authentication Middleware (Uses hardcoded users) ---
-async function auth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No authorization header' });
-
-  const token = authHeader.split(' ')[1]; // Expecting "Basic <base64encoded_username:password>"
-  if (!token) return res.status(401).json({ error: 'Malformed authorization header' });
-
-  try {
-    const credentials = Buffer.from(token, 'base64').toString('ascii');
-    const [username, password] = credentials.split(':');
-
-    // --- !!! SERIOUS SECURITY RISK: PLAIN-TEXT PASSWORD COMPARISON !!! ---
-    const user = HARDCODED_USERS[username];
-
-    if (!user || user.password !== password) { // Directly comparing plain-text passwords
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    // Attach user object (including role) to the request
-    req.user = { username: username, role: user.role, id: username };
-    next();
-  } catch (err) {
-    console.error('Authentication error:', err);
-    res.status(500).json({ error: 'Authentication failed' });
-  }
-}
-
-// --- NEW: Authorization Middleware ---
-function authorize(roles = []) {
-  if (typeof roles === 'string') {
-    roles = [roles];
-  }
-
-  return (req, res, next) => {
-    // req.user is populated by the 'auth' middleware
-    if (!req.user || (roles.length > 0 && !roles.includes(req.user.role))) {
-      return res.status(403).json({ error: 'Forbidden: You do not have the required permissions.' });
-    }
-    next();
-  };
-}
-
-// Schemas (Existing ones)
-const CashJournal = mongoose.model('CashJournal', new mongoose.Schema({
-    cashAtHand: Number,
-    cashBanked: Number,
-    bankReceiptId: String,
-    responsiblePerson: String,
-    date: { type: Date, default: Date.now }
-}));
-
-// --- MODIFIED: Inventory Schema to use explicit 'date' field ---
-const Inventory = mongoose.model('Inventory', new mongoose.Schema({
-  item: String,
-  opening: Number,
-  purchases: Number,
-  sales: Number,
-  spoilage: Number,
-  closing: Number,
-  date: { type: Date, default: Date.now } // Using explicit date field
-})); 
-
-const Sale = mongoose.model('Sale', new mongoose.Schema({
-  item: String,
-  number: Number,
-  bp: Number,
-  sp: Number,
-  profit: Number, 
-  percentageprofit: Number,
-  date: Date
-}));
-
-const Expense = mongoose.model('Expense', new mongoose.Schema({
-  description: String,
-  amount: Number,
-  receiptId: String,
-  date: Date,
-  source: String,
-  recordedBy: String,
-}));
-
-
-// Nodemailer setup
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-});
-
-// Low-stock notifier (Existing)
-async function notifyLowStock(item, current) {
-  try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
-      subject: `Low stock alert: ${item}`,
-      text: `Stock for ${item} is now ${current}, below threshold! Please reorder.`
-    });
-    console.log(`Low stock email sent for ${item}. Current stock: ${current}`);
-  } catch (err) {
-    console.error('Error sending low stock email:', err);
-  }
-}
-
-
-// --- MODIFIED: Login Endpoint (Uses hardcoded users) ---
-app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-
-    // --- !!! SERIOUS SECURITY RISK: PLAIN-TEXT PASSWORD COMPARISON !!! ---
-    const user = HARDCODED_USERS[username];
-
-    if (!user || user.password !== password) { // Directly comparing plain-text passwords
-        console.warn(`Login failed for username: ${username}. Invalid credentials.`);
-        await logAction('Login Attempt Failed', username, { reason: 'Invalid credentials provided.' });
-        return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    // Login successful
-    console.log(`Login successful for username: ${username}, role: ${user.role}`);
-    await logAction('Login Successful', username);
-
-    // Respond with user info, including their role
-    res.status(200).json({ username: user.username, role: user.role });
-});
-
-// --- NEW: Logout Endpoint ---
-app.post('/logout', auth, async (req, res) => {
-    // Note: req.user is populated by the auth middleware before this route is hit
-    await logAction('Logout', req.user.username);
-    res.status(200).json({ message: 'Logged out successfully' });
-});
-
-
-// --- MODIFIED: Inventory Endpoints ---
-app.post('/inventory', auth, authorize(['Nachwera Richard','Nelson','Florence','Martha', 'Joshua']), async (req, res) => { 
-  try {
-    const { item, opening, purchases, sales, spoilage } = req.body;
-    const total = opening + purchases - sales - spoilage;
-    const doc = await Inventory.create({ item, opening, purchases, sales, spoilage, closing: total, date: new Date() }); // Add date to creation
-    if (total < Number(process.env.LOW_STOCK_THRESHOLD)) {
-      notifyLowStock(item, total);
-    }
-    await logAction('Inventory Created', req.user.username, { item: doc.item, closing: doc.closing });
-    res.status(201).json(doc);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/inventory', auth, authorize(['Nachwera Richard', 'Florence', 'Nelson', 'Joshua', 'Martha']), async (req, res) => {
-    try {
-        const { item, low, date, page = 1, limit = 5 } = req.query;
-        const filter = {};
-        
-        // Add item and low stock filters
-        if (item) filter.item = new RegExp(item, 'i');
-        if (low) filter.closing = { $lt: Number(low) };
-
-        // --- NEW LOGIC: Use a single date to get the most recent record for each item ---
-        let docs = [];
-        let total = 0;
-        
-        if (date) {
-            const selectedDate = new Date(date + 'T23:59:59.999Z');
-            if (isNaN(selectedDate.getTime())) {
-                return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
-            }
-
-            // Find the most recent record for each unique item, on or before the selected date
-            const latestRecords = await Inventory.aggregate([
-                {
-                    // Step 1: Filter to only include records on or before the selected date
-                    $match: {
-                        date: { $lte: selectedDate },
-                        ...filter // Also apply item and low stock filters
-                    }
-                },
-                {
-                    // Step 2: Sort the records by item and then by date in descending order
-                    // This places the most recent record for each item at the top
-                    $sort: { item: 1, date: -1 }
-                },
-                {
-                    // Step 3: Group by item and take the first document in each group
-                    // This gives us the single latest record for each item
-                    $group: {
-                        _id: '$item',
-                        doc: { $first: '$$ROOT' }
-                    }
-                },
-                {
-                    // Step 4: Project the document back to the original format
-                    $replaceRoot: { newRoot: '$doc' }
-                }
-            ]);
-
-            // Now, we handle pagination on the aggregated results
-            total = latestRecords.length;
-            const skip = (parseInt(page) - 1) * parseInt(limit);
-            docs = latestRecords.slice(skip, skip + Number(limit));
-
-        } else {
-            // Original logic for when no date is provided
-            const skip = (parseInt(page) - 1) * parseInt(limit);
-            total = await Inventory.countDocuments(filter);
-            docs = await Inventory.find(filter).skip(skip).limit(Number(limit));
-        }
-        // --- END NEW LOGIC ---
-
-        // --- UPDATED LOGIC: Find and log ALL records without a date field ---
-        const recordsWithoutDate = await Inventory.find({ date: { $exists: false } });
-        if (recordsWithoutDate.length > 0) {
-            console.log('Found the following records without a date field:');
-            console.log(recordsWithoutDate);
-        }
-        // --- END UPDATED LOGIC ---
-
-        res.json({
-            data: docs,
-            total,
-            page: Number(page),
-            pages: Math.ceil(total / limit)
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-
-app.put('/inventory/:id', auth, authorize(['Nachwera Richard','Nelson','Florence']), async (req, res) => { // Joshua CANNOT edit inventory
-  try {
-    const existingDoc = await Inventory.findById(req.params.id);
-    if (!existingDoc) {
-      return res.status(404).json({ error: 'Inventory item not found' });
-    }
-
-    const updatedValues = {
-      item: req.body.item !== undefined ? req.body.item : existingDoc.item,
-      opening: req.body.opening !== undefined ? req.body.opening : existingDoc.opening,
-      purchases: req.body.purchases !== undefined ? req.body.purchases : existingDoc.purchases,
-      sales: req.body.sales !== undefined ? req.body.sales : existingDoc.sales,
-      spoilage: req.body.spoilage !== undefined ? req.body.spoilage : existingDoc.spoilage,
-    };
-    const newClosing = updatedValues.opening + updatedValues.purchases - updatedValues.sales - updatedValues.spoilage;
-
-    const doc = await Inventory.findByIdAndUpdate(
-      req.params.id,
-      { ...updatedValues, closing: newClosing },
-      { new: true }
-    );
-
-    if (doc.closing < Number(process.env.LOW_STOCK_THRESHOLD)) {
-      notifyLowStock(doc.item, doc.closing);
-    }
-    await logAction('Inventory Updated', req.user.username, { itemId: doc._id, item: doc.item, newClosing: doc.closing });
-    res.json(doc);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/inventory/:id', auth, authorize(['Nachwera Richard','Nelson','Florence']), async (req, res) => {
-  try {
-    const deletedDoc = await Inventory.findByIdAndDelete(req.params.id);
-    if (!deletedDoc) {
-        return res.status(404).json({ error: 'Inventory item not found' });
-    }
-    await logAction('Inventory Deleted', req.user.username, { itemId: deletedDoc._id, item: deletedDoc.item });
-    res.sendStatus(204);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// --- MODIFIED: Sales endpoints ---
-app.post('/sales', auth, authorize(['Nachwera Richard', 'Martha', 'Joshua', 'Nelson', 'Florence']), async (req, res) => {
-  try {
-    const { item, number, bp, sp } = req.body;
-    const totalBuyingPrice = bp * number;
-    const totalSellingPrice = sp * number;
-    const profit = totalSellingPrice - totalBuyingPrice;
-    let percentageProfit = 0;
-    if (totalBuyingPrice !== 0) {
-      percentageProfit = (profit / totalBuyingPrice) * 100;
-    }
-
-    const sale = await Sale.create({
-      ...req.body,
-      profit: profit,
-      percentageprofit: percentageProfit,
-      date: new Date()
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('MongoDB connected successfully!')) // Success message
+    .catch(err => {
+        console.error('MongoDB connection error:', err); // Error message
+        process.exit(1); // Exit process if database connection fails
     });
 
-    if (item && typeof number === 'number' && number > 0) {
-      try {
-        // --- NEW LOGIC TO FIND AND UPDATE THE LATEST INVENTORY ENTRY ---
-        const latestInventoryItem = await Inventory.findOne({ item: item }).sort({ date: -1 });
+// --- MongoDB Schemas and Models ---
 
-        if (latestInventoryItem) {
-          // Calculate the new closing stock
-          const newClosing = latestInventoryItem.closing - number;
+// User Schema for Authentication
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true, trim: true },
+    password: { type: String, required: true },
+    role: { type: String, required: true, enum: ['admin', 'waiter'], default: 'waiter' }
+}, { timestamps: true });
 
-          // Create a new inventory entry with the updated closing stock,
-          // rather than updating the old one directly
-          const newInventoryEntry = await Inventory.create({
-            item: item,
-            opening: latestInventoryItem.closing, // The old closing becomes the new opening
-            purchases: 0,
-            sales: number,
-            spoilage: 0,
-            closing: newClosing,
-            date: new Date()
-          });
-
-          console.log(`Inventory updated for "${item}". New closing stock: ${newInventoryEntry.closing}.`);
-          if (newClosing < Number(process.env.LOW_STOCK_THRESHOLD)) {
-            notifyLowStock(item, newClosing);
-          }
-        } else {
-          console.warn(`Warning: Sold item "${item}" not found in Inventory. Inventory not updated.`);
-        }
-        // --- END NEW LOGIC ---
-      } catch (inventoryError) {
-        console.error(`Error updating inventory for item "${item}":`, inventoryError);
-      }
-    } else {
-      console.warn("Warning: Sale request missing valid 'item' or 'number' for inventory deduction. Inventory not updated.");
+// Pre-save hook to hash password before saving
+userSchema.pre('save', async function (next) {
+    if (this.isModified('password')) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
     }
-    await logAction('Sale Created', req.user.username, { saleId: sale._id, item: sale.item, number: sale.number, sp: sale.sp });
-    res.status(201).json(sale);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    next();
 });
 
-app.get('/sales', auth, authorize(['Nachwera Richard', 'Martha','Joshua','Nelson','Florence']), async (req, res) => {
-  try {
-    const { date, page = 1, limit = 5 } = req.query;
+const User = mongoose.model('User', userSchema);
 
-    let query = {};
-    // --- MODIFIED: Robust Date Filter Logic ---
-    if (date) {
-      const startDate = new Date(date + 'T00:00:00.000Z');
-      const endDate = new Date(date + 'T23:59:59.999Z');
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
-      }
-      query.date = { $gte: startDate, $lte: endDate };
-    }
-    // --- END: Robust Date Filter Logic ---
+// Ingredient Schema
+const ingredientSchema = new mongoose.Schema({
+    name: { type: String, required: true, trim: true, unique: true },
+    quantity: { type: Number, required: true, min: 0, default: 0 }, // Current stock
+    unit: { type: String, required: true, trim: true }, // e.g., kg, liter, pcs
+    costPerUnit: { type: Number, required: true, min: 0 },
+    spoilage: { type: Number, required: true, min: 0, default: 0 }, // Current stock
+}, { timestamps: true });
+const Ingredient = mongoose.model('Ingredient', ingredientSchema);
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Sale.countDocuments(query);
-    const sales = await Sale.find(query).sort({ date: -1 }).skip(skip).limit(Number(limit));
+// MenuItem Schema
+const menuItemSchema = new mongoose.Schema({
+    name: { type: String, required: true, trim: true, unique: true },
+    price: { type: Number, required: true, min: 0 },
+    category: { type: String, required: true, trim: true },
+    // Embedded recipe: array of objects linking to Ingredient and quantity used
+    recipe: [{
+        ingredient: { type: mongoose.Schema.Types.ObjectId, ref: 'Ingredient', required: true },
+        quantityUsed: { type: Number, required: true, min: 0 }
+    }]
+}, { timestamps: true });
+const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 
-    res.json({
-      data: sales,
-      total,
-      page: Number(page),
-      pages: Math.ceil(total / limit)
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Expense Schema
+const expenseSchema = new mongoose.Schema({
+    date: { type: Date, required: true },
+    category: { type: String, required: true, trim: true },
+    description: { type: String, required: true, trim: true },
+    amount: { type: Number, required: true, min: 0 }
+}, { timestamps: true });
+const Expense = mongoose.model('Expense', expenseSchema);
+
+// Sale Schema
+const saleSchema = new mongoose.Schema({
+    date: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
+    itemSold: { type: String, required: true, trim: true }, // Name of the menu item sold
+    quantity: { type: Number, required: true, min: 1 }, // Quantity of the menu item sold
+    amount: { type: Number, required: true, min: 0 }, // Total sale amount for this item
+    costOfGoods: { type: Number, required: true, min: 0 }, // Calculated cost of ingredients
+    profit: { type: Number, required: true }, // Sale amount - cost of goods
+    paymentMethod: { type: String, required: true, trim: true }
+}, { timestamps: true });
+const Sale = mongoose.model('Sale', saleSchema);
+
+// KitchenOrder Schema
+const kitchenOrderSchema = new mongoose.Schema({
+    date: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
+    items: [{ // Array of items in the order
+        menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
+        quantity: { type: Number, required: true, min: 1 }
+    }],
+    totalAmount: { type: Number, required: true, min: 0 },
+    status: { type: String, required: true, enum: ['New', 'Preparing', 'Ready', 'Cancelled'], default: 'New' }
+}, { timestamps: true });
+const KitchenOrder = mongoose.model('KitchenOrder', kitchenOrderSchema);
+
+// New AuditLog Schema and Model
+const auditLogSchema = new mongoose.Schema({
+    timestamp: { type: Date, default: Date.now },
+    user: { type: String, required: true, trim: true, default: 'System' }, // User who performed the action
+    action: { type: String, required: true, trim: true }, // e.g., 'created_menu_item', 'updated_inventory'
+    details: { type: String, required: true, trim: true } // Description of the action
 });
+const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+
+// --- Helper Functions ---
+
+/**
+ * Validates date range query parameters.
+ * @param {string} startDateStr - Start date string (YYYY-MM-DD).
+ * @param {string} endDateStr - End date string (YYYY-MM-DD).
+ * @returns {object} An object with valid Date objects for start and end, or null if invalid.
+ */
+const validateDateRange = (startDateStr, endDateStr) => {
+    let startDate = null;
+    let endDate = null;
+
+    if (startDateStr) {
+        startDate = new Date(startDateStr + 'T00:00:00.000Z'); // UTC start of day
+        if (isNaN(startDate.getTime())) {
+            return { error: 'Invalid start date format' };
+        }
+    }
+    if (endDateStr) {
+        endDate = new Date(endDateStr + 'T23:59:59.999Z'); // UTC end of day
+        if (isNaN(endDate.getTime())) {
+            return { error: 'Invalid end date format' };
+        }
+    }
+
+    if (startDate && endDate && startDate > endDate) {
+        return { error: 'Start date cannot be after end date' };
+    }
+    return { startDate, endDate };
+};
+
+/**
+ * Helper function to create an audit log entry.
+ * @param {string} user - The user who performed the action (e.g., 'admin', 'waiter').
+ * @param {string} action - A brief description of the action (e.g., 'created_item').
+ * @param {string} details - A detailed description of the action.
+ */
+const createAuditLog = async (user, action, details) => {
+    try {
+        const log = new AuditLog({ user, action, details });
+        await log.save();
+    } catch (error) {
+        console.error('Failed to create audit log:', error);
+    }
+};
 
 
-app.put('/sales/:id', auth, authorize(['Nachwera Richard','Nelson','Florence']), async (req, res) => { // Martha and Joshua CANNOT edit sales
-  try {
-    const updated = await Sale.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ error: 'Sale not found' });
-    await logAction('Sale Updated', req.user.username, { saleId: updated._id, item: updated.item, newNumber: updated.number });
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// --- Controllers (Logic for API Endpoints) ---
 
-app.delete('/sales/:id', auth, authorize(['Nachwera Richard','Nelson','Florence']), async (req, res) => {
-  try {
-    const deleted = await Sale.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: 'Sale not found' });
-    await logAction('Sale Deleted', req.user.username, { saleId: deleted._id, item: deleted.item });
-    res.sendStatus(204);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// --- Menu Item Controllers ---
+const menuController = {
+    getAllMenuItems: async (req, res) => {
+        try {
+            const menuItems = await MenuItem.find().populate('recipe.ingredient'); // Populate ingredient details
+            res.status(200).json(menuItems);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+    createMenuItem: async (req, res) => {
+        const { name, price, category, recipe } = req.body;
+        const newMenuItem = new MenuItem({ name, price, category, recipe });
 
-// --- MODIFIED: Expenses endpoints ---
-app.post('/expenses', auth, authorize(['Nachwera Richard', 'Martha','Joshua','Nelson','Florence']), async (req, res) => {
-  try {
-    const { description, amount, receiptId, source } = req.body; 
-    const exp = await Expense.create({
-      description,
-      amount,
-      receiptId,
-      source,
-      recordedBy: req.user.username, 
-      date: new Date()
-    });
-    await logAction('Expense Created', req.user.username, { expenseId: exp._id, description: exp.description, amount: exp.amount });
-    res.status(201).json(exp);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/expenses', auth, authorize(['Nachwera Richard', 'Martha','Joshua','Nelson','Florence']), async (req, res) => { // Joshua also added for viewing expenses
-  try {
-    const { date, page = 1, limit = 5 } = req.query;
-
-    let query = {};
-    // --- MODIFIED: Robust Date Filter Logic ---
-    if (date) {
-      const startDate = new Date(date + 'T00:00:00.000Z');
-      const endDate = new Date(date + 'T23:59:59.999Z');
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
-      }
-      query.date = { $gte: startDate, $lte: endDate };
-    }
-    // --- END: Robust Date Filter Logic ---
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Expense.countDocuments(query);
-    const expenses = await Expense.find(query).sort({ date: -1 }).skip(skip).limit(Number(limit));
-
-    res.json({
-      data: expenses,
-      total,
-      page: Number(page),
-      pages: Math.ceil(total / limit)
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-app.put('/expenses/:id', auth, authorize(['Nachwera Richard','Nelson','Florence']), async (req, res) => { // Martha and Joshua CANNOT edit expenses
-  try {
-    const updated = await Expense.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ error: 'Expense not found' });
-    await logAction('Expense Updated', req.user.username, { expenseId: updated._id, description: updated.description, newAmount: updated.amount });
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// --- MODIFIED: Cash Management Endpoints ---
-app.post('/cash-journal', auth, authorize(['Nachwera Richard', 'Martha','Nelson','Florence']), async (req, res) => {
-    try {
-        const { cashAtHand, cashBanked, bankReceiptId, date } = req.body;
-        const newEntry = await CashJournal.create({
-            cashAtHand,
-            cashBanked,
-            bankReceiptId,
-            responsiblePerson: req.user.username, 
-            date: date ? new Date(date) : new Date()
-        });
-        await logAction('Cash Entry Created', req.user.username, { entryId: newEntry._id, cashAtHand: newEntry.cashAtHand, cashBanked: newEntry.cashBanked });
-        res.status(201).json(newEntry);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/cash-journal', auth, authorize(['Nachwera Richard', 'Martha','Nelson','Florence']), async (req, res) => { 
-    try {
-        const { date, responsiblePerson } = req.query;
-        const filter = {};
-        // --- MODIFIED: Robust Date Filter Logic ---
-        if (date) {
-            const startDate = new Date(date + 'T00:00:00.000Z');
-            const endDate = new Date(date + 'T23:59:59.999Z');
-            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+        try {
+            const savedMenuItem = await newMenuItem.save();
+            await createAuditLog('admin', 'create_menu_item', `Created new menu item: ${savedMenuItem.name}`);
+            const populatedMenuItem = await MenuItem.findById(savedMenuItem._id).populate('recipe.ingredient');
+            res.status(201).json(populatedMenuItem);
+        } catch (error) {
+            if (error.code === 11000) { // Duplicate key error
+                return res.status(409).json({ message: 'Menu item with this name already exists.' });
             }
-            filter.date = { $gte: startDate, $lte: endDate };
-        }
-        // --- END: Robust Date Filter Logic ---
-        if (responsiblePerson) {
-            filter.responsiblePerson = new RegExp(responsiblePerson, 'i');
-        }
-        const records = await CashJournal.find(filter).sort({ date: -1 });
-        res.json(records);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+            res.status(400).json({ message: error.message });
+        }
+    },
+    updateMenuItem: async (req, res) => {
+        const { id } = req.params;
+        const { name, price, category, recipe } = req.body;
+
+        try {
+            const updatedMenuItem = await MenuItem.findByIdAndUpdate(
+                id,
+                { name, price, category, recipe },
+                { new: true, runValidators: true }
+            ).populate('recipe.ingredient');
+
+            if (!updatedMenuItem) {
+                return res.status(404).json({ message: 'Menu item not found' });
+            }
+            await createAuditLog('admin', 'update_menu_item', `Updated menu item: ${updatedMenuItem.name}`);
+            res.status(200).json(updatedMenuItem);
+        } catch (error) {
+            if (error.code === 11000) {
+                return res.status(409).json({ message: 'Menu item with this name already exists.' });
+            }
+            res.status(400).json({ message: error.message });
+        }
+    },
+    deleteMenuItem: async (req, res) => {
+        const { id } = req.params;
+
+        try {
+            const deletedMenuItem = await MenuItem.findByIdAndDelete(id);
+            if (!deletedMenuItem) {
+                return res.status(404).json({ message: 'Menu item not found' });
+            }
+            await createAuditLog('admin', 'delete_menu_item', `Deleted menu item: ${deletedMenuItem.name}`);
+            res.status(200).json({ message: 'Menu item deleted successfully' });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+};
+
+// --- Inventory Controllers ---
+const inventoryController = {
+    getAllIngredients: async (req, res) => {
+        try {
+            const ingredients = await Ingredient.find();
+            res.status(200).json(ingredients);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+    createIngredient: async (req, res) => {
+        const { name, quantity, unit, costPerUnit, spoilage } = req.body;
+        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit, spoilage });
+
+        try {
+            const savedIngredient = await newIngredient.save();
+            await createAuditLog('admin', 'create_ingredient', `Created new ingredient: ${savedIngredient.name}`);
+            res.status(201).json(savedIngredient);
+        } catch (error) {
+            if (error.code === 11000) {
+                return res.status(409).json({ message: 'Ingredient with this name already exists.' });
+            }
+            res.status(400).json({ message: error.message });
+        }
+    },
+    updateIngredient: async (req, res) => {
+        const { id } = req.params;
+        const { name, quantity, unit, costPerUnit, spoilage } = req.body;
+
+        try {
+            const updatedIngredient = await Ingredient.findByIdAndUpdate(
+                id,
+                { name, quantity, unit, costPerUnit, spoilage },
+                { new: true, runValidators: true }
+            );
+
+            if (!updatedIngredient) {
+                return res.status(404).json({ message: 'Ingredient not found' });
+            }
+            await createAuditLog('admin', 'update_ingredient', `Updated ingredient: ${updatedIngredient.name}`);
+            res.status(200).json(updatedIngredient);
+        } catch (error) {
+            if (error.code === 11000) {
+                return res.status(409).json({ message: 'Ingredient with this name already exists.' });
+            }
+            res.status(400).json({ message: error.message });
+        }
+    },
+    deleteIngredient: async (req, res) => {
+        const { id } = req.params;
+
+        try {
+            const deletedIngredient = await Ingredient.findByIdAndDelete(id);
+            if (!deletedIngredient) {
+                return res.status(404).json({ message: 'Ingredient not found' });
+            }
+            await createAuditLog('admin', 'delete_ingredient', `Deleted ingredient: ${deletedIngredient.name}`);
+            res.status(200).json({ message: 'Ingredient deleted successfully' });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+};
+
+// --- Expense Controllers ---
+const expenseController = {
+    getAllExpenses: async (req, res) => {
+        const { startDate: startDateStr, endDate: endDateStr } = req.query;
+        const { startDate, endDate, error } = validateDateRange(startDateStr, endDateStr);
+
+        if (error) {
+            return res.status(400).json({ message: error });
+        }
+
+        let query = {};
+        if (startDate && endDate) {
+            query.date = { $gte: startDate, $lte: endDate };
+        } else if (startDate) {
+            query.date = { $gte: startDate };
+        } else if (endDate) {
+            query.date = { $lte: endDate };
+        }
+
+        try {
+            const expenses = await Expense.find(query).sort({ date: -1 }); // Sort by date descending
+            res.status(200).json(expenses);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+    createExpense: async (req, res) => {
+        const { date, category, description, amount } = req.body;
+        const newExpense = new Expense({ date, category, description, amount });
+
+        try {
+            const savedExpense = await newExpense.save();
+            await createAuditLog('admin', 'create_expense', `Recorded a new expense: ${description} for $${amount}`);
+            res.status(201).json(savedExpense);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    },
+    updateExpense: async (req, res) => {
+        const { id } = req.params;
+        const { date, category, description, amount } = req.body;
+
+        try {
+            const updatedExpense = await Expense.findByIdAndUpdate(
+                id,
+                { date, category, description, amount },
+                { new: true, runValidators: true }
+            );
+
+            if (!updatedExpense) {
+                return res.status(404).json({ message: 'Expense not found' });
+            }
+            await createAuditLog('admin', 'update_expense', `Updated expense for: ${description}`);
+            res.status(200).json(updatedExpense);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    },
+    deleteExpense: async (req, res) => {
+        const { id } = req.params;
+
+        try {
+            const deletedExpense = await Expense.findByIdAndDelete(id);
+            if (!deletedExpense) {
+                return res.status(404).json({ message: 'Expense not found' });
+            }
+            await createAuditLog('admin', 'delete_expense', `Deleted expense: ${deletedExpense.description}`);
+            res.status(200).json({ message: 'Expense deleted successfully' });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+};
+
+// --- Kitchen Order Controllers ---
+const kitchenOrderController = {
+    createKitchenOrder: async (req, res) => {
+        const { items, totalAmount } = req.body; // items: [{ menuItemId, quantity }]
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({ message: 'Order must contain items.' });
+        }
+
+        const orderItemsWithDetails = [];
+        for (const item of items) {
+            const menuItem = await MenuItem.findById(item.menuItemId);
+            if (!menuItem) {
+                return res.status(404).json({ message: `Menu item with ID ${item.menuItemId} not found.` });
+            }
+            orderItemsWithDetails.push({ menuItem: menuItem._id, quantity: item.quantity });
+        }
+
+        const newOrder = new KitchenOrder({
+            date: new Date(),
+            items: orderItemsWithDetails,
+            totalAmount,
+            status: 'New'
+        });
+
+        try {
+            const savedOrder = await newOrder.save();
+            await createAuditLog('waiter', 'create_order', `Created new kitchen order #${savedOrder._id}`);
+            // Populate menu item details for response
+            const populatedOrder = await KitchenOrder.findById(savedOrder._id).populate('items.menuItem');
+            res.status(201).json(populatedOrder);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    },
+
+    getAllKitchenOrders: async (req, res) => {
+        const { startDate: startDateStr, endDate: endDateStr } = req.query;
+        const { startDate, endDate, error } = validateDateRange(startDateStr, endDateStr);
+
+        if (error) {
+            return res.status(400).json({ message: error });
+        }
+
+        let query = {};
+        if (startDate && endDate) {
+            query.date = { $gte: startDate, $lte: endDate };
+        } else if (startDate) {
+            query.date = { $gte: startDate };
+        } else if (endDate) {
+            query.date = { $lte: endDate };
+        }
+
+        try {
+            const orders = await KitchenOrder.find(query)
+                .populate('items.menuItem') // Populate menu item details
+                .sort({ date: -1, createdAt: -1 }); // Sort by date and then creation time
+            res.status(200).json(orders);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+
+    markOrderReady: async (req, res) => {
+        const { id } = req.params;
+
+        try {
+            const order = await KitchenOrder.findById(id).populate({
+                path: 'items.menuItem',
+                populate: {
+                    path: 'recipe.ingredient' // Populate ingredients within the menu item's recipe
+                }
+            });
+
+            if (!order) {
+                return res.status(404).json({ message: 'Order not found' });
+            }
+            if (order.status === 'Ready' || order.status === 'Cancelled') {
+                return res.status(400).json({ message: `Order is already ${order.status}. Cannot mark ready.` });
+            }
+
+            let totalOrderCostOfGoods = 0;
+            const inventoryUpdates = [];
+            const salesToRecord = [];
+            const insufficientStockMessages = [];
+
+            // --- Phase 1: Check Inventory Availability ---
+            for (const orderItem of order.items) {
+                const menuItem = orderItem.menuItem; // Already populated
+                if (!menuItem) {
+                    insufficientStockMessages.push(`Menu item with ID ${orderItem.menuItem._id} not found.`);
+                    continue;
+                }
+
+                if (!menuItem.recipe || menuItem.recipe.length === 0) {
+                    console.warn(`Warning: No recipe defined for menu item "${menuItem.name}". Cannot deduct inventory.`);
+                    // Still allow sale, but cost of goods for this item will be 0
+                    salesToRecord.push({
+                        itemSold: menuItem.name,
+                        quantity: orderItem.quantity,
+                        amount: menuItem.price * orderItem.quantity,
+                        costOfGoods: 0,
+                        profit: menuItem.price * orderItem.quantity,
+                        paymentMethod: 'Kitchen Order'
+                    });
+                    continue;
+                }
+
+                let itemCostOfGoods = 0;
+                for (const recipeItem of menuItem.recipe) {
+                    const ingredient = recipeItem.ingredient; // Already populated
+                    if (!ingredient) {
+                        insufficientStockMessages.push(`Ingredient with ID ${recipeItem.ingredient._id} for "${menuItem.name}" not found.`);
+                        continue;
+                    }
+
+                    const requiredQuantity = recipeItem.quantityUsed * orderItem.quantity;
+                    if (ingredient.quantity < requiredQuantity) {
+                        insufficientStockMessages.push(
+                            `Insufficient stock for "${ingredient.name}" (needed for "${menuItem.name}"). ` +
+                            `Needed: ${requiredQuantity.toFixed(2)} ${ingredient.unit}, ` +
+                            `Available: ${ingredient.quantity.toFixed(2)} ${ingredient.unit}.`
+                        );
+                    }
+                }
+            }
+
+            if (insufficientStockMessages.length > 0) {
+                return res.status(400).json({
+                    message: 'Cannot mark order ready due to insufficient inventory.',
+                    details: insufficientStockMessages
+                });
+            }
+
+            // --- Phase 2: Deduct Inventory and Calculate Costs (if Phase 1 passed) ---
+            for (const orderItem of order.items) {
+                const menuItem = orderItem.menuItem;
+                let itemCostOfGoods = 0;
+
+                if (menuItem.recipe && menuItem.recipe.length > 0) {
+                    for (const recipeItem of menuItem.recipe) {
+                        const ingredient = recipeItem.ingredient;
+                        const requiredQuantity = recipeItem.quantityUsed * orderItem.quantity;
+
+                        // Add to batch update for ingredients
+                        inventoryUpdates.push({
+                            id: ingredient._id,
+                            deductQuantity: requiredQuantity
+                        });
+                        itemCostOfGoods += requiredQuantity * ingredient.costPerUnit;
+                    }
+                }
+
+                const itemSaleAmount = menuItem.price * orderItem.quantity;
+                salesToRecord.push({
+                    itemSold: menuItem.name,
+                    quantity: orderItem.quantity,
+                    amount: itemSaleAmount,
+                    costOfGoods: itemCostOfGoods,
+                    profit: itemSaleAmount - itemCostOfGoods,
+                    paymentMethod: 'Kitchen Order'
+                });
+                totalOrderCostOfGoods += itemCostOfGoods;
+            }
+
+            // --- Phase 3: Perform Database Updates in a Transaction (for atomicity) ---
+            const session = await mongoose.startSession();
+            session.startTransaction();
+
+            try {
+                // Update ingredients
+                for (const update of inventoryUpdates) {
+                    await Ingredient.findByIdAndUpdate(
+                        update.id,
+                        { $inc: { quantity: -update.deductQuantity } }, // Decrement quantity
+                        { session }
+                    );
+                }
+
+                // Record sales
+                await Sale.insertMany(salesToRecord, { session });
+
+                // Update order status
+                order.status = 'Ready';
+                await order.save({ session });
+
+                await session.commitTransaction();
+                await createAuditLog('waiter', 'mark_order_ready', `Order #${order._id} marked as ready.`);
+                res.status(200).json({ message: `Order ${id} marked as Ready! Inventory updated and sales recorded.`, order });
+
+            } catch (transactionError) {
+                await session.abortTransaction();
+                console.error('Transaction failed:', transactionError);
+                await createAuditLog('system', 'transaction_failed', `Transaction failed for order #${id}. Error: ${transactionError.message}`);
+                res.status(500).json({ message: 'Failed to process order. Transaction aborted.', error: transactionError.message });
+            } finally {
+                session.endSession();
+            }
+
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+
+    cancelKitchenOrder: async (req, res) => {
+        const { id } = req.params;
+
+        try {
+            const order = await KitchenOrder.findById(id);
+            if (!order) {
+                return res.status(404).json({ message: 'Order not found' });
+            }
+            if (order.status === 'Ready' || order.status === 'Cancelled') {
+                return res.status(400).json({ message: `Order is already ${order.status}. Cannot cancel.` });
+            }
+
+            order.status = 'Cancelled';
+            const updatedOrder = await order.save();
+            await createAuditLog('waiter', 'cancel_order', `Order #${id} was cancelled.`);
+            res.status(200).json({ message: `Order ${id} has been cancelled.`, order: updatedOrder });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+};
+
+// --- Sales Controllers ---
+const salesController = {
+    getAllSales: async (req, res) => {
+        const { startDate: startDateStr, endDate: endDateStr } = req.query;
+        const { startDate, endDate, error } = validateDateRange(startDateStr, endDateStr);
+
+        if (error) {
+            return res.status(400).json({ message: error });
+        }
+
+        let query = {};
+        if (startDate && endDate) {
+            query.date = { $gte: startDate, $lte: endDate };
+        } else if (startDate) {
+            query.date = { $gte: startDate };
+        } else if (endDate) {
+            query.date = { $lte: endDate };
+        }
+
+        try {
+            const sales = await Sale.find(query).sort({ date: -1, createdAt: -1 });
+            res.status(200).json(sales);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+};
+
+// --- Report Controllers ---
+const reportController = {
+    generateFinancialReport: async (req, res) => {
+        const { startDate: startDateStr, endDate: endDateStr } = req.query;
+        const { startDate, endDate, error } = validateDateRange(startDateStr, endDateStr);
+
+        if (error) {
+            return res.status(400).json({ message: error });
+        }
+
+        let salesQuery = {};
+        let expenseQuery = {};
+
+        if (startDate && endDate) {
+            salesQuery.date = { $gte: startDate, $lte: endDate };
+            expenseQuery.date = { $gte: startDate, $lte: endDate };
+        } else if (startDate) {
+            salesQuery.date = { $gte: startDate };
+            expenseQuery.date = { $gte: startDate };
+        } else if (endDate) {
+            salesQuery.date = { $lte: endDate };
+            expenseQuery.date = { $lte: endDate };
+        }
+
+        try {
+            const sales = await Sale.find(salesQuery);
+            const expenses = await Expense.find(expenseQuery);
+
+            const totalSalesAmount = sales.reduce((sum, s) => sum + s.amount, 0);
+            const totalCostOfGoods = sales.reduce((sum, s) => sum + s.costOfGoods, 0);
+            const totalExpensesAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+            const netProfit = totalSalesAmount - totalCostOfGoods - totalExpensesAmount;
+
+            res.status(200).json({
+                startDate: startDateStr,
+                endDate: endDateStr,
+                totalSales: totalSalesAmount,
+                totalCostOfGoods: totalCostOfGoods,
+                totalExpenses: totalExpensesAmount,
+                netProfit: netProfit,
+                salesDetails: sales,
+                expenseDetails: expenses
+            });
+
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+};
+
+// --- API Routes ---
+
+// Basic route for testing the server
+app.get('/', (req, res) => {
+    res.send('Restaurant Management Backend API is running!');
 });
 
-app.put('/cash-journal/:id', auth, authorize(['Nachwera Richard','Nelson','Florence']), async (req, res) => { 
-    try {
-        const { cashAtHand, cashBanked, bankReceiptId, date } = req.body; 
-        const updatedEntry = await CashJournal.findByIdAndUpdate(
-            req.params.id,
-            { cashAtHand, cashBanked, bankReceiptId, responsiblePerson: req.user.username, date: date ? new Date(date) : undefined }, 
-            { new: true }
-        );
-        if (!updatedEntry) {
-            return res.status(404).json({ error: 'Cash journal entry not found' });
-        }
-        await logAction('Cash Entry Updated', req.user.username, { entryId: updatedEntry._id, newCashAtHand: updatedEntry.cashAtHand });
-        res.json(updatedEntry);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// --- User Authentication Routes ---
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const user = await User.findOne({ username });
+        if (!user) {
+            await createAuditLog('system', 'user_login_failed', `Failed login attempt for user: ${username}`);
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            await createAuditLog('system', 'user_login_failed', `Failed login attempt for user: ${username}`);
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+        await createAuditLog('system', 'user_login_success', `User ${user.username} logged in successfully.`);
+        res.status(200).json({ token, role: user.role });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Server error during login.' });
+    }
 });
 
-// --- NEW: Audit Log Endpoints (Nachwera Richard, Nelson, Florence Only) ---
-app.get('/audit-logs', auth, authorize(['Nachwera Richard','Nelson','Florence']), async (req, res) => {
-    try {
-        const { page = 1, limit = 20, search } = req.query;
-
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        let query = {};
-
-        if (search) {
-            const searchRegex = new RegExp(search, 'i');
-            query = {
-                $or: [
-                    { user: searchRegex },
-                    { action: searchRegex },
-                    { details: searchRegex },
-                ]
-            };
-        }
-
-        const total = await AuditLog.countDocuments(query);
-        const logs = await AuditLog.find(query)
-            .sort({ timestamp: -1 })
-            .skip(skip)
-            .limit(Number(limit));
-
-        res.json({
-            data: logs,
-            total,
-            page: Number(page),
-            pages: Math.ceil(total / limit)
-        });
-    } catch (err) {
-        console.error('Error fetching audit logs on server:', err);
-        res.status(500).json({ error: err.message });
-    }
+// For a simple logout, we just log the action and the client discards the token.
+app.post('/api/logout', async (req, res) => {
+    const { username } = req.body; // Assuming the client sends the username to be logged out
+    try {
+        await createAuditLog('system', 'user_logout', `User ${username || 'unknown'} logged out.`);
+        res.status(200).json({ message: 'Logged out successfully.' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ message: 'Server error during logout.' });
+    }
 });
 
+// --- Ingredients Routes (alias of inventory) ---
+// GET all ingredients
+app.get('/api/ingredients', async (req, res) => {
+    try {
+        const ingredients = await Ingredient.find({});
+        res.status(200).json(ingredients);
+    } catch (error) {
+        console.error('Error fetching ingredients:', error);
+        res.status(500).json({ message: 'Server error fetching ingredients.' });
+    }
+});
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// POST a new ingredient
+app.post('/api/ingredients', async (req, res) => {
+    const { name, quantity, unit, costPerUnit } = req.body;
+    try {
+        const newIngredient = new Ingredient({ name, quantity, unit, costPerUnit });
+        await newIngredient.save();
+        await createAuditLog('admin', 'create_ingredient', `Created new ingredient via API: ${name}`);
+        res.status(201).json(newIngredient);
+    } catch (error) {
+        console.error('Error adding ingredient:', error);
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// PUT (update) an ingredient by ID
+app.put('/api/ingredients/:id', async (req, res) => {
+    const { name, quantity, unit, costPerUnit } = req.body;
+    try {
+        const updatedIngredient = await Ingredient.findByIdAndUpdate(
+            req.params.id,
+            { name, quantity, unit, costPerUnit },
+            { new: true, runValidators: true }
+        );
+        if (!updatedIngredient) {
+            return res.status(404).json({ message: 'Ingredient not found.' });
+        }
+        await createAuditLog('admin', 'update_ingredient', `Updated ingredient via API: ${name}`);
+        res.status(200).json(updatedIngredient);
+    } catch (error) {
+        console.error('Error updating ingredient:', error);
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// DELETE an ingredient by ID
+app.delete('/api/ingredients/:id', async (req, res) => {
+    try {
+        const deletedIngredient = await Ingredient.findByIdAndDelete(req.params.id);
+        if (!deletedIngredient) {
+            return res.status(404).json({ message: 'Ingredient not found.' });
+        }
+        await createAuditLog('admin', 'delete_ingredient', `Deleted ingredient via API: ${deletedIngredient.name}`);
+        res.status(200).json({ message: 'Ingredient deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting ingredient:', error);
+        res.status(500).json({ message: 'Server error deleting ingredient.' });
+    }
+});
+
+// --- NEW Audit Log Routes ---
+app.get('/api/auditlogs', async (req, res) => {
+    try {
+        // Fetch all audit logs, sorted by timestamp descending (newest first)
+        const logs = await AuditLog.find().sort({ timestamp: -1 });
+        res.status(200).json(logs);
+    } catch (error) {
+        console.error('Error fetching audit logs:', error);
+        res.status(500).json({ message: 'Server error fetching audit logs.' });
+    }
+});
+
+// Menu Item Routes
+app.get('/api/menu', menuController.getAllMenuItems);
+app.post('/api/menu', menuController.createMenuItem);
+app.put('/api/menu/:id', menuController.updateMenuItem);
+app.delete('/api/menu/:id', menuController.deleteMenuItem);
+
+// Inventory Routes
+app.get('/api/inventory', inventoryController.getAllIngredients);
+app.post('/api/inventory', inventoryController.createIngredient);
+app.put('/api/inventory/:id', inventoryController.updateIngredient);
+app.delete('/api/inventory/:id', inventoryController.deleteIngredient);
+
+// Expense Routes
+app.get('/api/expenses', expenseController.getAllExpenses);
+app.post('/api/expenses', expenseController.createExpense);
+app.put('/api/expenses/:id', expenseController.updateExpense);
+app.delete('/api/expenses/:id', expenseController.deleteExpense);
+
+// Kitchen Order Routes
+app.post('/api/kitchen-orders', kitchenOrderController.createKitchenOrder);
+app.get('/api/kitchen-orders', kitchenOrderController.getAllKitchenOrders);
+app.put('/api/kitchen-orders/:id/ready', kitchenOrderController.markOrderReady); // Specific action route
+app.put('/api/kitchen-orders/:id/cancel', kitchenOrderController.cancelKitchenOrder); // Specific action route
+
+// Sales Routes (Sales are primarily generated by kitchen orders, so read-only for frontend)
+app.get('/api/sales', salesController.getAllSales);
+
+// Report Routes
+app.get('/api/reports/financial', reportController.generateFinancialReport);
+
+
+// --- Global Error Handling Middleware ---
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong on the server!', error: err.message });
+});
+
+// --- Start the Server ---
+const PORT = process.env.PORT || 5000; // Use port from .env or default to 5000
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Access API at http://localhost:${PORT}/api`);
+});

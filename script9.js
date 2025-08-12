@@ -137,7 +137,6 @@ const salesEndDateInput = document.getElementById('sales-end-date');
 const filterSalesBtn = document.getElementById('filter-sales-btn');
 
 // Inventory Management Elements
-const inventoryForm = document.getElementById('inventory-form');
 const ingredientIdInput = document.getElementById('ingredient-id');
 const ingredientNameInput = document.getElementById('ingredient-name');
 const ingredientQuantityInput = document.getElementById('ingredient-quantity');

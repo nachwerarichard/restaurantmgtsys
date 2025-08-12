@@ -577,16 +577,14 @@ const reportController = {
             const expenses = await Expense.find(expenseQuery);
 
             const totalSalesAmount = sales.reduce((sum, s) => sum + s.amount, 0);
-            const totalCostOfGoods = sales.reduce((sum, s) => sum + s.costOfGoods, 0);
             const totalExpensesAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-            const netProfit = totalSalesAmount - totalCostOfGoods - totalExpensesAmount;
+            const netProfit = totalSalesAmount  - totalExpensesAmount;
 
             res.status(200).json({
                 startDate: startDateStr,
                 endDate: endDateStr,
                 totalSales: totalSalesAmount,
-                totalCostOfGoods: totalCostOfGoods,
                 totalExpenses: totalExpensesAmount,
                 netProfit: netProfit,
                 salesDetails: sales,

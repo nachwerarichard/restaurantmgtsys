@@ -863,7 +863,6 @@ async function renderInventoryItems() {
             row.innerHTML = `
                 <td class="font-medium">${item._id}</td>
                 <td class="text-gray">${item.name}</td>
-                <td class="text-gray">Ugshs${item.costPerUnit.toFixed(2)}</td>
                 <td class="table-actions">
                     ${checkUserRole(['admin']) ? `<button onclick="editInventoryItem('${item._id}')" class="edit">Edit</button>` : ''}
                     ${checkUserRole(['admin']) ? `<button onclick="deleteInventoryItem('${item._id}')" class="delete">Delete</button>` : ''}

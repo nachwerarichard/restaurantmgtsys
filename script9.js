@@ -1278,7 +1278,7 @@ addRecipeIngredientBtn.addEventListener('click', () => {
         // Update quantity if already exists
     } else {
         // Add new ingredient to recipe
-        currentRecipe.push({ ingredient: selectedIngredientId, quantityUsed: quantityUsed });
+        currentRecipe.push({ ingredient: selectedIngredientId });
     }
 
     renderCurrentRecipe();

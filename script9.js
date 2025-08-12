@@ -850,7 +850,6 @@ filterSalesBtn.addEventListener('click', renderSalesTransactions);
 // Variable declarations for original fields
 const inventoryForm = document.getElementById('inventory-form');
 const ingredientIdInput = document.getElementById('ingredient-id');
-const filterInventoryBtn = document.getElementById('filter-inventory-btn');
 // The other inputs are no longer needed
 const inventoryStartDateInput = document.getElementById('inventory-start-date');
 const inventoryEndDateInput = document.getElementById('inventory-end-date');

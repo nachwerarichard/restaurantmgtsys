@@ -50,10 +50,7 @@ const User = mongoose.model('User', userSchema);
 // Ingredient Schema
 const ingredientSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true, unique: true },
-    quantity: { type: Number, required: true, min: 0, default: 0 }, // Current stock
-    unit: { type: String, required: true, trim: true }, // e.g., kg, liter, pcs
-    costPerUnit: { type: Number, required: true, min: 0 },
-    spoilage: { type: Number, required: true, min: 0, default: 0 }, // Current stock
+     // Current stock
 }, { timestamps: true });
 const Ingredient = mongoose.model('Ingredient', ingredientSchema);
 
@@ -65,7 +62,7 @@ const menuItemSchema = new mongoose.Schema({
     // Embedded recipe: array of objects linking to Ingredient and quantity used
     recipe: [{
         ingredient: { type: mongoose.Schema.Types.ObjectId, ref: 'Ingredient', required: true },
-        quantityUsed: { type: Number, required: true, min: 0 }
+       
     }]
 }, { timestamps: true });
 const MenuItem = mongoose.model('MenuItem', menuItemSchema);
@@ -88,10 +85,8 @@ const saleSchema = new mongoose.Schema({
     },
     itemSold: { type: String, required: true, trim: true }, // Name of the menu item sold
     quantity: { type: Number, required: true, min: 1 }, // Quantity of the menu item sold
-    amount: { type: Number, required: true, min: 0 }, // Total sale amount for this item
-    costOfGoods: { type: Number, required: true, min: 0 }, // Calculated cost of ingredients
-    profit: { type: Number, required: true }, // Sale amount - cost of goods
-    paymentMethod: { type: String, required: true, trim: true }
+    amount: { type: Number, required: true, min: 0 } // Total sale amount for this item 
+
 }, { timestamps: true });
 const Sale = mongoose.model('Sale', saleSchema);
 

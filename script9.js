@@ -1184,7 +1184,6 @@ async function generateReports() {
                     <td class="text-gray">${transaction.itemSold}</td>
                     <td class="text-gray">${transaction.quantity}</td>
                     <td class="text-gray">Ugshs${transaction.amount.toFixed(2)}</td>
-                    <td class="text-gray">Ugshs${transaction.profit.toFixed(2)}</td>
                 `;
                 reportSalesTableBody.appendChild(row);
             });
@@ -1324,7 +1323,6 @@ async function renderMenuItems() {
 
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td class="font-medium">${item._id}</td>
                 <td class="text-gray">${item.name}</td>
                 <td class="text-gray">${item.category}</td>
                 <td class="text-gray">Ugshs${item.price.toFixed(2)}</td>

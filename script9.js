@@ -1,37 +1,52 @@
+// =====================================================================
+// Global Constants & State Management
+// =====================================================================
 const BACKEND_API_URL = 'https://restaurantmgtsys.onrender.com/api';
-const POLLING_INTERVAL = 10000; // Adjusted to 10 seconds for less frequent network requests.
+const POLLING_INTERVAL = 5000; // 5 seconds for polling
 
-// --- In-memory state (Centralized state management) ---
-const state = {
-    currentOrder: [],
-    allMenuItems: [],
-    allIngredients: [],
-    currentRecipe: [],
-    lastKitchenOrderCount: 0,
-    lastWaiterOrderStatuses: new Map(),
-    kitchenPollingIntervalId: null,
-    waiterPollingIntervalId: null,
-    currentUserRole: null,
-    editingIngredientId: null,
-    editingMenuItemId: null,
-    editingExpenseId: null,
+// --- In-memory state variables for client-side data caching ---
+let currentOrder = [];
+let allMenuItems = [];
+let allIngredients = [];
+let currentRecipe = []; // Used for the recipe being built for a menu item
+
+// --- Notification Polling State ---
+let lastKitchenOrderCount = 0; // Tracks new orders for the kitchen
+let lastWaiterOrderStatuses = new Map(); // Tracks status changes for waiters
+let kitchenPollingIntervalId = null;
+let waiterPollingIntervalId = null;
+
+// --- User & Role Management ---
+let currentUserRole = null;
+const allowedRoles = {
+    'order-management': ['admin', 'waiter'],
+    'kitchen': ['admin', 'chef'], // Changed 'waiter' to 'chef' for clarity
+    'sales': ['admin'],
+    'inventory-management': ['admin'],
+    'expenses': ['admin'],
+    'reports': ['admin'],
+    'menu-management': ['admin'],
+    'auditlogs': ['admin']
 };
 
-// --- DOM Elements (Cached for performance) ---
+// --- Tone.js Synth for notifications ---
+const synth = new Tone.Synth().toDestination();
+
+// =====================================================================
+// DOM Element Selectors
+// =====================================================================
+// General UI
 const navLinks = document.querySelectorAll('.nav-link');
 const contentSections = document.querySelectorAll('.content-section');
 const currentSectionTitle = document.getElementById('current-section-title');
-const menuToggle = document.getElementById('menu-toggle');
-const sidebar = document.getElementById('sidebar');
-const sidebarOverlay = document.getElementById('sidebar-overlay');
 const messageBox = document.getElementById('message-box');
 const messageText = document.getElementById('message-text');
 const messageOkBtn = document.getElementById('message-ok-btn');
-const loginForm = document.getElementById('login-form');
-const loginPage = document.getElementById('login-page');
-const mainAppContainer = document.getElementById('main-app-container');
-const errorMessage = document.getElementById('error-message');
-const logoutButton = document.getElementById('logout-btn');
+
+// Mobile Menu
+const menuToggle = document.getElementById('menu-toggle');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
 
 // Order Management
 const orderMenuItemSelect = document.getElementById('order-menu-item');
@@ -47,7 +62,7 @@ const kitchenStartDateInput = document.getElementById('kitchen-start-date');
 const kitchenEndDateInput = document.getElementById('kitchen-end-date');
 const filterKitchenBtn = document.getElementById('filter-kitchen-btn');
 
-// Sales Management
+// Sales
 const salesTransactionsTableBody = document.getElementById('sales-transactions-table-body');
 const salesStartDateInput = document.getElementById('sales-start-date');
 const salesEndDateInput = document.getElementById('sales-end-date');
@@ -55,12 +70,11 @@ const filterSalesBtn = document.getElementById('filter-sales-btn');
 
 // Inventory Management
 const inventoryForm = document.getElementById('inventory-form');
-const addInventoryBtn = document.getElementById('add-inventory-btn');
+const ingredientIdInput = document.getElementById('ingredient-id');
 const ingredientNameInput = document.getElementById('ingredient-name');
 const ingredientQuantityInput = document.getElementById('ingredient-quantity');
 const ingredientUnitInput = document.getElementById('ingredient-unit');
 const ingredientCostPerUnitInput = document.getElementById('ingredient-cost-per-unit');
-const ingredientSpoilageInput = document.getElementById('ingredient-spoilage');
 const inventoryItemsTableBody = document.getElementById('inventory-items-table-body');
 const cancelIngredientEditBtn = document.getElementById('cancel-ingredient-edit-btn');
 const inventoryStartDateInput = document.getElementById('inventory-start-date');
@@ -105,47 +119,81 @@ const recipeQuantityUsedInput = document.getElementById('recipe-quantity-used');
 const addRecipeIngredientBtn = document.getElementById('add-recipe-ingredient-btn');
 const currentRecipeList = document.getElementById('current-recipe-list');
 
-// Tone.js Synth for notifications
-const synth = new Tone.Synth().toDestination();
+// Login
+const loginForm = document.getElementById('login-form');
+const loginPage = document.getElementById('login-page');
+const mainAppContainer = document.getElementById('main-app-container');
+const errorMessage = document.getElementById('error-message');
+const logoutButton = document.getElementById('logout-btn');
 
-// --- Role-based access control (Centralized) ---
-const allowedRoles = {
-    'order-management': ['admin', 'waiter'],
-    'kitchen': ['admin', 'waiter'],
-    'sales': ['admin'],
-    'inventory-management': ['admin'],
-    'expenses': ['admin'],
-    'reports': ['admin'],
-    'menu-management': ['admin', 'waiter'],
-    'auditlogs': ['admin'],
-};
 
-// --- Helper Functions ---
+// =====================================================================
+// Helper Functions
+// =====================================================================
 
+/**
+ * Checks if the user is authorized for a given role.
+ * @param {string[]} requiredRoles - An array of roles that can access the section.
+ * @returns {boolean} True if the current user role is in the allowed roles.
+ */
+function checkUserRole(requiredRoles) {
+    if (!currentUserRole || !requiredRoles) {
+        return false;
+    }
+    return requiredRoles.includes(currentUserRole);
+}
+
+/**
+ * Displays a custom message box.
+ * @param {string} message - The message to display.
+ */
 function showMessageBox(message) {
     messageText.textContent = message;
     messageBox.classList.remove('hidden');
     playNotificationSound();
 }
 
+/**
+ * Plays a loud notification sound using Tone.js.
+ */
 async function playNotificationSound() {
     await Tone.start();
     synth.triggerAttackRelease("C4", "8n");
 }
 
+/**
+ * Helper to get today's date in YYYY-MM-DD format.
+ * @returns {string} Current date in YYYY-MM-DD format.
+ */
 const getTodayDate = () => {
     const today = new Date();
-    const [year, month, day] = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
 
+/**
+ * Helper to format a Date object to YYYY-MM-DD string.
+ * @param {Date} dateObj - The Date object to format.
+ * @returns {string} Formatted date string.
+ */
 const formatDateForInput = (dateObj) => {
     if (!dateObj) return '';
     const date = new Date(dateObj);
-    const [year, month, day] = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
 
+/**
+ * Handles API fetch requests with integrated error handling.
+ * @param {string} url - The API endpoint URL.
+ * @param {object} options - Fetch options (method, headers, body).
+ * @returns {Promise<object>} The JSON response data.
+ * @throws {Error} If the network request fails or the server returns an error.
+ */
 async function fetchData(url, options = {}) {
     try {
         const response = await fetch(url, {
@@ -168,13 +216,14 @@ async function fetchData(url, options = {}) {
     }
 }
 
-function checkUserRole(requiredRoles) {
-    if (!state.currentUserRole || !requiredRoles) {
-        return false;
-    }
-    return requiredRoles.includes(state.currentUserRole);
-}
 
+// =====================================================================
+// UI and Navigation Management
+// =====================================================================
+
+/**
+ * Hides all content sections.
+ */
 function hideAllSections() {
     contentSections.forEach(section => {
         section.classList.add('hidden');
@@ -182,17 +231,24 @@ function hideAllSections() {
     });
 }
 
+/**
+ * Stops all active polling intervals.
+ */
 function stopAllPolling() {
-    if (state.kitchenPollingIntervalId) {
-        clearInterval(state.kitchenPollingIntervalId);
-        state.kitchenPollingIntervalId = null;
+    if (kitchenPollingIntervalId) {
+        clearInterval(kitchenPollingIntervalId);
+        kitchenPollingIntervalId = null;
     }
-    if (state.waiterPollingIntervalId) {
-        clearInterval(state.waiterPollingIntervalId);
-        state.waiterPollingIntervalId = null;
+    if (waiterPollingIntervalId) {
+        clearInterval(waiterPollingIntervalId);
+        waiterPollingIntervalId = null;
     }
 }
 
+/**
+ * Shows a specific content section and updates the title.
+ * @param {string} sectionId - The ID of the section to show.
+ */
 async function showSection(sectionId) {
     if (!checkUserRole(allowedRoles[sectionId])) {
         showMessageBox('You do not have permission to access this section.');
@@ -209,17 +265,18 @@ async function showSection(sectionId) {
         currentSectionTitle.textContent = targetSection.querySelector('h2').textContent;
     }
 
+    // Special handling for sections that need data refresh and activate polling
     switch (sectionId) {
         case 'order-management':
             await renderOrderForm();
             renderCurrentOrder();
             await checkOrderReadyForWaiter();
-            state.waiterPollingIntervalId = setInterval(checkOrderReadyForWaiter, POLLING_INTERVAL);
+            waiterPollingIntervalId = setInterval(checkOrderReadyForWaiter, POLLING_INTERVAL);
             break;
         case 'kitchen':
             await renderKitchenOrders();
             await checkNewOrdersForChef();
-            state.kitchenPollingIntervalId = setInterval(checkNewOrdersForChef, POLLING_INTERVAL);
+            kitchenPollingIntervalId = setInterval(checkNewOrdersForChef, POLLING_INTERVAL);
             break;
         case 'sales':
             await renderSalesTransactions();
@@ -243,7 +300,7 @@ async function showSection(sectionId) {
             renderCurrentRecipe();
             break;
         case 'auditlogs':
-            await renderAuditLogs();
+            renderAuditLogs();
             break;
     }
 
@@ -253,30 +310,88 @@ async function showSection(sectionId) {
     }
 }
 
-// --- Event Listeners (using Event Delegation where possible) ---
+/**
+ * Handles navigation link clicks.
+ * @param {Event} event - The click event.
+ */
+async function handleNavLinkClick(event) {
+    event.preventDefault();
+    const sectionId = event.currentTarget.dataset.section;
+    if (sectionId) {
+        await showSection(sectionId);
+    }
+}
 
-navLinks.forEach(link => {
-    link.addEventListener('click', (event) => {
-        event.preventDefault();
-        const sectionId = event.currentTarget.dataset.section;
-        showSection(sectionId);
+// =====================================================================
+// User Authentication and Session Management
+// =====================================================================
+
+/**
+ * Initializes the main application based on the user's role.
+ */
+async function initializeApp(userRole) {
+    currentUserRole = userRole;
+
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+        const sectionId = link.dataset.section;
+        if (!checkUserRole(allowedRoles[sectionId])) {
+            link.classList.add('hidden');
+        } else {
+            link.classList.remove('hidden');
+        }
     });
-});
 
-messageOkBtn.addEventListener('click', () => {
-    messageBox.classList.add('hidden');
-});
+    loginPage.classList.add('hidden');
+    mainAppContainer.classList.remove('hidden');
+    errorMessage.classList.add('hidden');
 
-menuToggle.addEventListener('click', () => {
-    sidebar.classList.toggle('active');
-    sidebarOverlay.classList.toggle('active');
-});
+    const today = getTodayDate();
+    const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
 
-sidebarOverlay.addEventListener('click', () => {
-    sidebar.classList.remove('active');
-    sidebarOverlay.classList.remove('active');
-});
+    // Set default dates for all date inputs
+    kitchenStartDateInput.value = thirtyDaysAgo;
+    kitchenEndDateInput.value = today;
+    salesStartDateInput.value = thirtyDaysAgo;
+    salesEndDateInput.value = today;
+    inventoryStartDateInput.value = thirtyDaysAgo;
+    inventoryEndDateInput.value = today;
+    expenseStartDateInput.value = thirtyDaysAgo;
+    expenseEndDateInput.value = today;
+    reportStartDateInput.value = thirtyDaysAgo;
+    reportEndDateInput.value = today;
 
+    // Load initial data for all relevant sections
+    await Promise.all([
+        renderOrderForm(),
+        renderKitchenOrders(),
+        renderSalesTransactions(),
+        renderInventoryItems(),
+        renderExpenses(),
+        generateReports(),
+        populateRecipeIngredientSelect()
+    ]);
+    
+    // Initial population of lastWaiterOrderStatuses for accurate change detection
+    try {
+        const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
+        orders.forEach(order => {
+            lastWaiterOrderStatuses.set(order._id, order.status);
+        });
+    } catch (error) {
+        console.error("Failed to initialize waiter order statuses:", error);
+    }
+    
+    // Show a default section based on role
+    if (currentUserRole === 'waiter') {
+        await showSection('order-management');
+    } else if (currentUserRole === 'admin') {
+        await showSection('kitchen');
+    }
+}
+
+/**
+ * Handles user login and role-based access.
+ */
 loginForm.addEventListener('submit', async function(event) {
     event.preventDefault();
     const usernameInput = document.getElementById('username').value.trim();
@@ -296,9 +411,12 @@ loginForm.addEventListener('submit', async function(event) {
     }
 });
 
+/**
+ * Handles user logout.
+ */
 logoutButton.addEventListener('click', () => {
     sessionStorage.removeItem('userRole');
-    state.currentUserRole = null;
+    currentUserRole = null;
     stopAllPolling();
     mainAppContainer.classList.add('hidden');
     loginPage.classList.remove('hidden');
@@ -306,185 +424,47 @@ logoutButton.addEventListener('click', () => {
     document.getElementById('username').focus();
 });
 
-// Order Management
-addToOrderBtn.addEventListener('click', () => {
-    const selectedItemId = orderMenuItemSelect.value;
-    const quantity = parseInt(orderQuantityInput.value);
 
-    if (!selectedItemId || isNaN(quantity) || quantity <= 0) {
-        showMessageBox('Please select a menu item and enter a valid quantity.');
-        return;
-    }
+// =====================================================================
+// Order Management Functions
+// =====================================================================
 
-    const existingItemIndex = state.currentOrder.findIndex(item => item.menuItemId === selectedItemId);
-    if (existingItemIndex > -1) {
-        state.currentOrder[existingItemIndex].quantity += quantity;
-    } else {
-        state.currentOrder.push({ menuItemId: selectedItemId, quantity: quantity });
-    }
-
-    renderCurrentOrder();
-    orderMenuItemSelect.value = '';
-    orderQuantityInput.value = '1';
-});
-
-placeOrderBtn.addEventListener('click', async () => {
-    if (state.currentOrder.length === 0) {
-        showMessageBox('Please add items to the order before placing it.');
-        return;
-    }
-
-    const totalOrderAmount = state.currentOrder.reduce((total, item) => {
-        const menuItem = state.allMenuItems.find(m => m._id === item.menuItemId);
-        return total + (menuItem ? menuItem.price * item.quantity : 0);
-    }, 0);
-
-    try {
-        const newOrder = await fetchData(`${BACKEND_API_URL}/kitchen-orders`, {
-            method: 'POST',
-            body: JSON.stringify({ items: state.currentOrder, totalAmount: totalOrderAmount })
-        });
-        showMessageBox(`Order ${newOrder._id} placed successfully! It has been sent to the kitchen.`);
-        state.currentOrder = [];
-        renderCurrentOrder();
-    } catch (error) {
-        // Handled by fetchData
-    }
-});
-
-// Kitchen Management
-filterKitchenBtn.addEventListener('click', renderKitchenOrders);
-kitchenOrdersTableBody.addEventListener('click', async (event) => {
-    const target = event.target;
-    if (target.matches('.edit')) {
-        const orderId = target.closest('tr').dataset.orderId;
-        await markOrderReady(orderId);
-    } else if (target.matches('.delete')) {
-        const orderId = target.closest('tr').dataset.orderId;
-        await cancelKitchenOrder(orderId);
-    }
-});
-
-// Sales Management
-filterSalesBtn.addEventListener('click', renderSalesTransactions);
-
-// Inventory Management
-filterInventoryBtn.addEventListener('click', renderInventoryItems);
-addInventoryBtn.addEventListener('click', (event) => {
-    event.preventDefault();
-    handleInventoryFormSubmit();
-});
-cancelIngredientEditBtn.addEventListener('click', () => resetInventoryForm());
-inventoryItemsTableBody.addEventListener('click', async (event) => {
-    const target = event.target;
-    const ingredientId = target.closest('tr').dataset.ingredientId;
-    if (target.matches('.edit')) {
-        await editIngredient(ingredientId);
-    } else if (target.matches('.delete')) {
-        await deleteIngredient(ingredientId);
-    }
-});
-
-// Expenses Management
-filterExpensesBtn.addEventListener('click', renderExpenses);
-expenseForm.addEventListener('submit', handleExpenseFormSubmit);
-cancelExpenseEditBtn.addEventListener('click', () => resetExpenseForm());
-expensesTableBody.addEventListener('click', async (event) => {
-    const target = event.target;
-    const expenseId = target.closest('tr').dataset.expenseId;
-    if (target.matches('.edit')) {
-        await editExpense(expenseId);
-    } else if (target.matches('.delete')) {
-        await deleteExpense(expenseId);
-    }
-});
-
-// Reports
-generateReportBtn.addEventListener('click', generateReports);
-
-// Menu Management
-menuForm.addEventListener('submit', handleMenuFormSubmit);
-cancelMenuEditBtn.addEventListener('click', () => resetMenuForm());
-menuItemsTableBody.addEventListener('click', async (event) => {
-    const target = event.target;
-    const menuItemId = target.closest('tr').dataset.menuItemId;
-    if (target.matches('.edit')) {
-        await editMenuItem(menuItemId);
-    } else if (target.matches('.delete')) {
-        await deleteMenuItem(menuItemId);
-    }
-});
-
-addRecipeIngredientBtn.addEventListener('click', addRecipeIngredient);
-
-// --- Core Functionality ---
-
-async function initializeApp(userRole) {
-    state.currentUserRole = userRole;
-
-    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
-        const sectionId = link.dataset.section;
-        link.classList.toggle('hidden', !checkUserRole(allowedRoles[sectionId]));
-    });
-
-    loginPage.classList.add('hidden');
-    mainAppContainer.classList.remove('hidden');
-    errorMessage.classList.add('hidden');
-
-    const today = getTodayDate();
-    const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
-    [kitchenStartDateInput, salesStartDateInput, inventoryStartDateInput, expenseStartDateInput, reportStartDateInput].forEach(input => input.value = thirtyDaysAgo);
-    [kitchenEndDateInput, salesEndDateInput, inventoryEndDateInput, expenseEndDateInput, reportEndDateInput].forEach(input => input.value = today);
-
-    try {
-        // Pre-fetch all necessary data on app load to avoid delays later
-        state.allMenuItems = await fetchData(`${BACKEND_API_URL}/menu`);
-        state.allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`);
-
-        const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
-        orders.forEach(order => state.lastWaiterOrderStatuses.set(order._id, order.status));
-    } catch (error) {
-        console.error("Initial data fetch failed:", error);
-    }
-
-    if (state.currentUserRole === 'waiter') {
-        await showSection('order-management');
-    } else if (state.currentUserRole === 'admin') {
-        await showSection('kitchen'); // A better default for admin, as they manage the kitchen
-    }
-}
-
-// Order Management
+/**
+ * Populates the menu item select dropdown.
+ */
 async function renderOrderForm() {
     orderMenuItemSelect.innerHTML = '<option value="">-- Select an Item --</option>';
     try {
-        state.allMenuItems = await fetchData(`${BACKEND_API_URL}/menu`);
-        state.allMenuItems.forEach(item => {
+        allMenuItems = await fetchData(`${BACKEND_API_URL}/menu`);
+        allMenuItems.forEach(item => {
             const option = document.createElement('option');
             option.value = item._id;
-            option.textContent = `${item.name} ( Ugshs${item.price.toFixed(2)})`;
+            option.textContent = `${item.name} (Ugshs${item.price.toFixed(2)})`;
             orderMenuItemSelect.appendChild(option);
         });
     } catch (error) {
-        // Handled by fetchData
+        console.error('Failed to render order form:', error);
     }
 }
 
+/**
+ * Renders the items currently added to the order.
+ */
 function renderCurrentOrder() {
     currentOrderList.innerHTML = '';
     let total = 0;
-    if (state.currentOrder.length === 0) {
+    if (currentOrder.length === 0) {
         currentOrderList.innerHTML = `<li class="order-list-item">No items in current order.</li>`;
     } else {
-        state.currentOrder.forEach((orderItem, index) => {
-            const menuItem = state.allMenuItems.find(item => item._id === orderItem.menuItemId);
+        currentOrder.forEach((orderItem, index) => {
+            const menuItem = allMenuItems.find(item => item._id === orderItem.menuItemId);
             if (menuItem) {
                 const listItem = document.createElement('li');
                 listItem.classList.add('order-list-item');
                 listItem.innerHTML = `
                     <span>${menuItem.name} x ${orderItem.quantity}</span>
-                    <span>ugshs${(menuItem.price * orderItem.quantity).toFixed(2)}</span>
-                    <button class="remove-item-btn" data-index="${index}">&times;</button>
+                    <span>Ugshs${(menuItem.price * orderItem.quantity).toFixed(2)}</span>
+                    <button onclick="removeOrderItem(${index})">&times;</button>
                 `;
                 currentOrderList.appendChild(listItem);
                 total += menuItem.price * orderItem.quantity;
@@ -494,25 +474,85 @@ function renderCurrentOrder() {
     currentOrderTotalSpan.textContent = total.toFixed(2);
 }
 
-currentOrderList.addEventListener('click', (event) => {
-    if (event.target.classList.contains('remove-item-btn')) {
-        const index = event.target.dataset.index;
-        state.currentOrder.splice(index, 1);
+/**
+ * Adds a selected menu item to the current order.
+ */
+addToOrderBtn.addEventListener('click', () => {
+    const selectedItemId = orderMenuItemSelect.value;
+    const quantity = parseInt(orderQuantityInput.value);
+
+    if (!selectedItemId || isNaN(quantity) || quantity <= 0) {
+        showMessageBox('Please select a menu item and enter a valid quantity.');
+        return;
+    }
+
+    const existingItemIndex = currentOrder.findIndex(item => item.menuItemId === selectedItemId);
+    if (existingItemIndex > -1) {
+        currentOrder[existingItemIndex].quantity += quantity;
+    } else {
+        currentOrder.push({ menuItemId: selectedItemId, quantity: quantity });
+    }
+
+    renderCurrentOrder();
+    orderMenuItemSelect.value = '';
+    orderQuantityInput.value = '1';
+});
+
+/**
+ * Removes an item from the current order.
+ * @param {number} index - The index of the item to remove.
+ */
+window.removeOrderItem = (index) => {
+    currentOrder.splice(index, 1);
+    renderCurrentOrder();
+};
+
+/**
+ * Places the current order, sending it to the backend kitchen orders.
+ */
+placeOrderBtn.addEventListener('click', async () => {
+    if (currentOrder.length === 0) {
+        showMessageBox('Please add items to the order before placing it.');
+        return;
+    }
+
+    let totalOrderAmount = 0;
+    currentOrder.forEach(item => {
+        const menuItem = allMenuItems.find(m => m._id === item.menuItemId);
+        if (menuItem) {
+            totalOrderAmount += menuItem.price * item.quantity;
+        }
+    });
+
+    try {
+        const newOrder = await fetchData(`${BACKEND_API_URL}/kitchen-orders`, {
+            method: 'POST',
+            body: JSON.stringify({
+                items: currentOrder,
+                totalAmount: totalOrderAmount
+            })
+        });
+        showMessageBox(`Order ${newOrder._id} placed successfully! It has been sent to the kitchen.`);
+        currentOrder = [];
         renderCurrentOrder();
+    } catch (error) {
+        console.error('Error placing order:', error);
     }
 });
 
 
-// Kitchen Management
+// =====================================================================
+// Kitchen Management Functions
+// =====================================================================
+
+/**
+ * Renders kitchen orders in the table.
+ */
 async function renderKitchenOrders() {
     kitchenOrdersTableBody.innerHTML = '';
     const startDate = kitchenStartDateInput.value;
     const endDate = kitchenEndDateInput.value;
-    let url = `${BACKEND_API_URL}/kitchen-orders`;
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (params.toString()) url += `?${params.toString()}`;
+    let url = `${BACKEND_API_URL}/kitchen-orders?startDate=${startDate}&endDate=${endDate}`;
 
     try {
         const orders = await fetchData(url);
@@ -522,66 +562,86 @@ async function renderKitchenOrders() {
         }
 
         orders.forEach(order => {
-            const itemsList = order.items.map(item => `${item.menuItem?.name || 'Unknown Item'} x ${item.quantity}`).join(', ');
+            const itemsList = order.items.map(item => `${item.menuItem ? item.menuItem.name : 'Unknown Item'} x ${item.quantity}`).join(', ');
             const row = document.createElement('tr');
-            row.dataset.orderId = order._id;
             row.innerHTML = `
-                <td class="font-medium">${order._id.substring(0, 8)}...</td>
+                <td class="font-medium">${order._id}</td>
                 <td class="text-gray">${formatDateForInput(order.date)}</td>
                 <td class="text-gray">${itemsList}</td>
                 <td class="text-gray">Ugshs${order.totalAmount.toFixed(2)}</td>
-                <td>
-                    <span class="status-badge ${order.status.toLowerCase().replace(' ', '-')}">${order.status}</span>
-                </td>
+                <td><span class="status-badge ${order.status.toLowerCase()}">${order.status}</span></td>
                 <td class="table-actions">
-                    ${(order.status === 'New' || order.status === 'Preparing') && checkUserRole(['admin']) ?
-                        `<button class="edit" data-action="mark-ready">Mark Ready</button>` :
+                    ${(order.status === 'New' || order.status === 'Preparing') && checkUserRole(['admin', 'chef']) ?
+                        `<button onclick="markOrderReady('${order._id}')" class="edit">Mark Ready</button>` :
                         `<button class="edit" disabled>Mark Ready</button>`
                     }
-                    ${order.status !== 'Cancelled' && checkUserRole(['admin']) ?
-                        `<button class="delete" data-action="cancel">Cancel</button>` :
-                        `<button class="delete" disabled>Cancel</button>`
+                    ${order.status !== 'Cancelled' && checkUserRole(['admin', 'chef']) ?
+                        `<button onclick="cancelKitchenOrder('${order._id}')" class="delete">Cancel</button>` :
+                        `<button class="delete" disabled>Cancelled</button>`
                     }
                 </td>
             `;
             kitchenOrdersTableBody.appendChild(row);
         });
     } catch (error) {
-        // Handled by fetchData
+        console.error('Failed to render kitchen orders:', error);
     }
 }
 
+/**
+ * Checks for new orders for the chef notification.
+ */
 async function checkNewOrdersForChef() {
-    if (state.currentUserRole !== 'admin') return;
     try {
+        if (currentUserRole !== 'admin' && currentUserRole !== 'chef') {
+            return;
+        }
+
         const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
         const newOrderCount = orders.filter(order => order.status === 'New').length;
-        if (newOrderCount > state.lastKitchenOrderCount) {
-            const ordersToNotify = newOrderCount - state.lastKitchenOrderCount;
-            showMessageBox(`New Order Alert! You have ${ordersToNotify} new order(s) to prepare.`);
+
+        if (newOrderCount > lastKitchenOrderCount) {
+            const ordersToNotify = newOrderCount - lastKitchenOrderCount;
+            if (ordersToNotify > 0) {
+                showMessageBox(`New Order Alert! You have ${ordersToNotify} new order(s) to prepare.`);
+            }
         }
-        state.lastKitchenOrderCount = newOrderCount;
+        
+        lastKitchenOrderCount = newOrderCount;
     } catch (error) {
         console.error("Error checking for new orders:", error);
     }
 }
 
-async function markOrderReady(orderId) {
-    if (!checkUserRole(['admin'])) {
+/**
+ * Marks a kitchen order as ready via backend API.
+ * @param {string} orderId - The ID of the order to mark ready.
+ */
+window.markOrderReady = async (orderId) => {
+    if (!checkUserRole(['admin', 'chef'])) {
         showMessageBox('You do not have permission to perform this action.');
         return;
     }
     try {
         const response = await fetchData(`${BACKEND_API_URL}/kitchen-orders/${orderId}/ready`, { method: 'PUT' });
         showMessageBox(response.message);
-        await Promise.all([renderKitchenOrders(), renderInventoryItems(), renderSalesTransactions(), generateReports()]);
+        await renderKitchenOrders();
+        await renderInventoryItems();
+        await renderSalesTransactions();
+        await generateReports();
     } catch (error) {
-        // Handled by fetchData
+        if (error.message.includes('insufficient inventory')) {
+            console.error('Inventory check failed:', error);
+        }
     }
-}
+};
 
-async function cancelKitchenOrder(orderId) {
-    if (!checkUserRole(['admin'])) {
+/**
+ * Cancels a kitchen order via backend API.
+ * @param {string} orderId - The ID of the order to cancel.
+ */
+window.cancelKitchenOrder = async (orderId) => {
+    if (!checkUserRole(['admin', 'chef'])) {
         showMessageBox('You do not have permission to perform this action.');
         return;
     }
@@ -590,38 +650,48 @@ async function cancelKitchenOrder(orderId) {
         showMessageBox(response.message);
         await renderKitchenOrders();
     } catch (error) {
-        // Handled by fetchData
+        console.error('Failed to cancel order:', error);
     }
-}
+};
 
-// Waiter Notifications
+/**
+ * Checks for orders that have been marked as 'Ready' for the waiter.
+ */
 async function checkOrderReadyForWaiter() {
-    if (state.currentUserRole !== 'waiter') return;
     try {
+        if (currentUserRole !== 'waiter' && currentUserRole !== 'admin') {
+            return;
+        }
+
         const orders = await fetchData(`${BACKEND_API_URL}/kitchen-orders`);
         orders.forEach(order => {
-            const lastStatus = state.lastWaiterOrderStatuses.get(order._id);
-            if (lastStatus !== 'Ready for Pickup' && order.status === 'Ready for Pickup') {
-                showMessageBox(`Order ${order._id.substring(0, 8)}... is ready for pickup!`);
+            const lastStatus = lastWaiterOrderStatuses.get(order._id);
+            if (order.status === 'Ready' && lastStatus !== 'Ready') {
+                showMessageBox(`Order ${order._id} is ready for pickup!`);
             }
-            state.lastWaiterOrderStatuses.set(order._id, order.status);
+            lastWaiterOrderStatuses.set(order._id, order.status);
         });
     } catch (error) {
-        console.error("Error checking order statuses:", error);
+        console.error('Error checking for ready orders:', error);
     }
 }
 
+// Event listeners for kitchen date filters
+filterKitchenBtn.addEventListener('click', renderKitchenOrders);
 
-// Sales Management
+
+// =====================================================================
+// Sales Management Functions
+// =====================================================================
+
+/**
+ * Renders the sales transactions in the table.
+ */
 async function renderSalesTransactions() {
     salesTransactionsTableBody.innerHTML = '';
     const startDate = salesStartDateInput.value;
     const endDate = salesEndDateInput.value;
-    let url = `${BACKEND_API_URL}/sales`;
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (params.toString()) url += `?${params.toString()}`;
+    let url = `${BACKEND_API_URL}/sales?startDate=${startDate}&endDate=${endDate}`;
 
     try {
         const sales = await fetchData(url);
@@ -632,7 +702,7 @@ async function renderSalesTransactions() {
         sales.forEach(transaction => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td class="font-medium">${transaction._id.substring(0, 8)}...</td>
+                <td class="font-medium">${transaction._id}</td>
                 <td class="text-gray">${formatDateForInput(transaction.date)}</td>
                 <td class="text-gray">${transaction.itemSold}</td>
                 <td class="text-gray">${transaction.quantity}</td>
@@ -641,461 +711,459 @@ async function renderSalesTransactions() {
             salesTransactionsTableBody.appendChild(row);
         });
     } catch (error) {
-        // Handled by fetchData
+        console.error('Failed to render sales transactions:', error);
     }
 }
 
+// Event listeners for sales date filters
+filterSalesBtn.addEventListener('click', renderSalesTransactions);
 
-// Inventory Management
+
+// =====================================================================
+// Inventory Management Functions (CRUD)
+// =====================================================================
+
 async function renderInventoryItems() {
     inventoryItemsTableBody.innerHTML = '';
     const startDate = inventoryStartDateInput.value;
     const endDate = inventoryEndDateInput.value;
-    let url = `${BACKEND_API_URL}/inventory`;
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (params.toString()) url += `?${params.toString()}`;
+    let url = `${BACKEND_API_URL}/inventory?startDate=${startDate}&endDate=${endDate}`;
 
     try {
-        const items = await fetchData(url);
-        state.allIngredients = items;
-        if (items.length === 0) {
-            inventoryItemsTableBody.innerHTML = `<tr><td colspan="6" class="table-empty-state">No inventory items found.</td></tr>`;
+        allIngredients = await fetchData(url);
+        if (allIngredients.length === 0) {
+            inventoryItemsTableBody.innerHTML = `<tr><td colspan="7" class="table-empty-state">No inventory items found.</td></tr>`;
             return;
         }
-        items.forEach(item => {
+
+        allIngredients.forEach(item => {
             const row = document.createElement('tr');
-            row.dataset.ingredientId = item._id;
             row.innerHTML = `
                 <td class="font-medium">${item.name}</td>
-                <td class="text-gray">${item.quantity.toFixed(2)} ${item.unit}</td>
+                <td class="text-gray">${item.quantity} ${item.unit}</td>
                 <td class="text-gray">Ugshs${item.costPerUnit.toFixed(2)}</td>
-                <td class="text-gray">${item.spoilageRate}%</td>
-                <td class="text-gray">${formatDateForInput(item.dateAdded)}</td>
+                <td class="text-gray">Ugshs${(item.quantity * item.costPerUnit).toFixed(2)}</td>
                 <td class="table-actions">
-                    <button class="edit">Edit</button>
-                    <button class="delete">Delete</button>
+                    <button onclick="editInventoryItem('${item._id}')" class="edit">Edit</button>
+                    <button onclick="deleteInventoryItem('${item._id}')" class="delete">Delete</button>
                 </td>
             `;
             inventoryItemsTableBody.appendChild(row);
         });
     } catch (error) {
-        // Handled by fetchData
+        console.error('Failed to render inventory items:', error);
     }
 }
 
-function handleInventoryFormSubmit(event) {
-    if (event) event.preventDefault();
-    const isEditing = !!state.editingIngredientId;
-
-    const data = {
-        name: ingredientNameInput.value,
-        quantity: parseFloat(ingredientQuantityInput.value),
-        unit: ingredientUnitInput.value,
-        costPerUnit: parseFloat(ingredientCostPerUnitInput.value),
-        spoilageRate: parseFloat(ingredientSpoilageInput.value),
-    };
-
-    if (Object.values(data).some(value => !value && value !== 0)) {
-        showMessageBox('Please fill out all fields.');
-        return;
-    }
-    if (data.quantity < 0 || data.costPerUnit < 0 || data.spoilageRate < 0) {
-        showMessageBox('Quantity, cost, and spoilage rate cannot be negative.');
-        return;
-    }
-
-    const url = isEditing ? `${BACKEND_API_URL}/inventory/${state.editingIngredientId}` : `${BACKEND_API_URL}/inventory`;
-    const method = isEditing ? 'PUT' : 'POST';
-
-    fetchData(url, {
-        method: method,
-        body: JSON.stringify(data),
-    }).then(() => {
-        showMessageBox(`Ingredient ${isEditing ? 'updated' : 'added'} successfully!`);
-        resetInventoryForm();
-        renderInventoryItems();
-        populateRecipeIngredientSelect();
-    }).catch(error => {
-        console.error('Error submitting inventory form:', error);
-    });
-}
-
-async function editIngredient(ingredientId) {
-    state.editingIngredientId = ingredientId;
-    try {
-        const ingredient = await fetchData(`${BACKEND_API_URL}/inventory/${ingredientId}`);
-        ingredientNameInput.value = ingredient.name;
-        ingredientQuantityInput.value = ingredient.quantity;
-        ingredientUnitInput.value = ingredient.unit;
-        ingredientCostPerUnitInput.value = ingredient.costPerUnit;
-        ingredientSpoilageInput.value = ingredient.spoilageRate;
-        addInventoryBtn.textContent = 'Update Ingredient';
-        cancelIngredientEditBtn.classList.remove('hidden');
-    } catch (error) {
-        console.error('Error fetching ingredient for edit:', error);
-    }
-}
-
-async function deleteIngredient(ingredientId) {
-    if (!confirm('Are you sure you want to delete this ingredient?')) return;
-    try {
-        const response = await fetchData(`${BACKEND_API_URL}/inventory/${ingredientId}`, { method: 'DELETE' });
-        showMessageBox(response.message);
-        renderInventoryItems();
-        populateRecipeIngredientSelect();
-    } catch (error) {
-        console.error('Error deleting ingredient:', error);
-    }
-}
-
-function resetInventoryForm() {
+function clearInventoryForm() {
     inventoryForm.reset();
-    state.editingIngredientId = null;
-    addInventoryBtn.textContent = 'Add Ingredient';
-    cancelIngredientEditBtn.classList.add('hidden');
+    ingredientIdInput.value = '';
+    document.querySelector('#inventory-form button[type="submit"]').textContent = 'Add Ingredient';
 }
 
-// Expenses Management
+window.editInventoryItem = (id) => {
+    const item = allIngredients.find(i => i._id === id);
+    if (item) {
+        ingredientIdInput.value = item._id;
+        ingredientNameInput.value = item.name;
+        ingredientQuantityInput.value = item.quantity;
+        ingredientUnitInput.value = item.unit;
+        ingredientCostPerUnitInput.value = item.costPerUnit;
+        document.querySelector('#inventory-form button[type="submit"]').textContent = 'Update Ingredient';
+    }
+};
+
+window.deleteInventoryItem = async (id) => {
+    if (confirm('Are you sure you want to delete this ingredient?')) {
+        try {
+            const response = await fetchData(`${BACKEND_API_URL}/inventory/${id}`, { method: 'DELETE' });
+            showMessageBox(response.message);
+            await renderInventoryItems();
+        } catch (error) {
+            console.error('Failed to delete ingredient:', error);
+        }
+    }
+};
+
+inventoryForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = ingredientIdInput.value;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `${BACKEND_API_URL}/inventory/${id}` : `${BACKEND_API_URL}/inventory`;
+
+    try {
+        const response = await fetchData(url, {
+            method,
+            body: JSON.stringify({
+                name: ingredientNameInput.value,
+                quantity: parseFloat(ingredientQuantityInput.value),
+                unit: ingredientUnitInput.value,
+                costPerUnit: parseFloat(ingredientCostPerUnitInput.value)
+            })
+        });
+        showMessageBox(response.message);
+        clearInventoryForm();
+        await renderInventoryItems();
+    } catch (error) {
+        console.error('Failed to save inventory item:', error);
+    }
+});
+
+cancelIngredientEditBtn.addEventListener('click', clearInventoryForm);
+filterInventoryBtn.addEventListener('click', renderInventoryItems);
+
+
+// =====================================================================
+// Expenses Management Functions
+// =====================================================================
+
 async function renderExpenses() {
     expensesTableBody.innerHTML = '';
     const startDate = expenseStartDateInput.value;
     const endDate = expenseEndDateInput.value;
-    let url = `${BACKEND_API_URL}/expenses`;
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (params.toString()) url += `?${params.toString()}`;
+    let url = `${BACKEND_API_URL}/expenses?startDate=${startDate}&endDate=${endDate}`;
 
     try {
         const expenses = await fetchData(url);
         if (expenses.length === 0) {
-            expensesTableBody.innerHTML = `<tr><td colspan="5" class="table-empty-state">No expenses found for this period.</td></tr>`;
+            expensesTableBody.innerHTML = `<tr><td colspan="6" class="table-empty-state">No expenses found for this period.</td></tr>`;
             return;
         }
+
         expenses.forEach(expense => {
             const row = document.createElement('tr');
-            row.dataset.expenseId = expense._id;
             row.innerHTML = `
                 <td class="font-medium">${formatDateForInput(expense.date)}</td>
                 <td class="text-gray">${expense.category}</td>
                 <td class="text-gray">${expense.description}</td>
                 <td class="text-gray">Ugshs${expense.amount.toFixed(2)}</td>
                 <td class="table-actions">
-                    <button class="edit">Edit</button>
-                    <button class="delete">Delete</button>
+                    <button onclick="editExpense('${expense._id}')" class="edit">Edit</button>
+                    <button onclick="deleteExpense('${expense._id}')" class="delete">Delete</button>
                 </td>
             `;
             expensesTableBody.appendChild(row);
         });
     } catch (error) {
-        // Handled by fetchData
+        console.error('Failed to render expenses:', error);
     }
 }
 
-function handleExpenseFormSubmit(event) {
-    event.preventDefault();
-    const isEditing = !!state.editingExpenseId;
-
-    const data = {
-        date: expenseDateInput.value,
-        category: expenseCategoryInput.value,
-        description: expenseDescriptionInput.value,
-        amount: parseFloat(expenseAmountInput.value),
-    };
-
-    if (Object.values(data).some(value => !value && value !== 0)) {
-        showMessageBox('Please fill out all fields.');
-        return;
-    }
-    if (data.amount < 0) {
-        showMessageBox('Amount cannot be negative.');
-        return;
-    }
-
-    const url = isEditing ? `${BACKEND_API_URL}/expenses/${state.editingExpenseId}` : `${BACKEND_API_URL}/expenses`;
-    const method = isEditing ? 'PUT' : 'POST';
-
-    fetchData(url, {
-        method: method,
-        body: JSON.stringify(data),
-    }).then(() => {
-        showMessageBox(`Expense ${isEditing ? 'updated' : 'added'} successfully!`);
-        resetExpenseForm();
-        renderExpenses();
-    }).catch(error => {
-        console.error('Error submitting expense form:', error);
-    });
+function clearExpenseForm() {
+    expenseForm.reset();
+    expenseIdInput.value = '';
+    document.querySelector('#expense-form button[type="submit"]').textContent = 'Add Expense';
 }
 
-async function editExpense(expenseId) {
-    state.editingExpenseId = expenseId;
+window.editExpense = async (id) => {
     try {
-        const expense = await fetchData(`${BACKEND_API_URL}/expenses/${expenseId}`);
+        const expense = await fetchData(`${BACKEND_API_URL}/expenses/${id}`);
+        expenseIdInput.value = expense._id;
         expenseDateInput.value = formatDateForInput(expense.date);
         expenseCategoryInput.value = expense.category;
         expenseDescriptionInput.value = expense.description;
         expenseAmountInput.value = expense.amount;
-        expenseForm.querySelector('button[type="submit"]').textContent = 'Update Expense';
-        cancelExpenseEditBtn.classList.remove('hidden');
+        document.querySelector('#expense-form button[type="submit"]').textContent = 'Update Expense';
     } catch (error) {
-        console.error('Error fetching expense for edit:', error);
+        console.error('Failed to fetch expense for editing:', error);
     }
-}
+};
 
-async function deleteExpense(expenseId) {
-    if (!confirm('Are you sure you want to delete this expense?')) return;
+window.deleteExpense = async (id) => {
+    if (confirm('Are you sure you want to delete this expense?')) {
+        try {
+            const response = await fetchData(`${BACKEND_API_URL}/expenses/${id}`, { method: 'DELETE' });
+            showMessageBox(response.message);
+            await renderExpenses();
+        } catch (error) {
+            console.error('Failed to delete expense:', error);
+        }
+    }
+};
+
+expenseForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = expenseIdInput.value;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `${BACKEND_API_URL}/expenses/${id}` : `${BACKEND_API_URL}/expenses`;
+
     try {
-        const response = await fetchData(`${BACKEND_API_URL}/expenses/${expenseId}`, { method: 'DELETE' });
+        const response = await fetchData(url, {
+            method,
+            body: JSON.stringify({
+                date: expenseDateInput.value,
+                category: expenseCategoryInput.value,
+                description: expenseDescriptionInput.value,
+                amount: parseFloat(expenseAmountInput.value)
+            })
+        });
         showMessageBox(response.message);
-        renderExpenses();
+        clearExpenseForm();
+        await renderExpenses();
     } catch (error) {
-        console.error('Error deleting expense:', error);
+        console.error('Failed to save expense:', error);
     }
-}
+});
 
-function resetExpenseForm() {
-    expenseForm.reset();
-    state.editingExpenseId = null;
-    expenseForm.querySelector('button[type="submit"]').textContent = 'Add Expense';
-    cancelExpenseEditBtn.classList.add('hidden');
-}
+cancelExpenseEditBtn.addEventListener('click', clearExpenseForm);
+filterExpensesBtn.addEventListener('click', renderExpenses);
 
 
-// Reports
-async function generateReports() {
-    const startDate = reportStartDateInput.value;
-    const endDate = reportEndDateInput.value;
-    if (!startDate || !endDate) {
-        showMessageBox('Please select both a start and end date for the report.');
-        return;
-    }
-    try {
-        const report = await fetchData(`${BACKEND_API_URL}/reports?startDate=${startDate}&endDate=${endDate}`);
-        
-        reportTotalSalesSpan.textContent = `Ugshs${report.totalSales.toFixed(2)}`;
-        reportTotalExpensesSpan.textContent = `Ugshs${report.totalExpenses.toFixed(2)}`;
-        const netBalance = report.totalSales - report.totalExpenses;
-        reportNetBalanceSpan.textContent = `Ugshs${netBalance.toFixed(2)}`;
-        reportNetBalanceSpan.classList.toggle('text-red', netBalance < 0);
-        reportNetBalanceSpan.classList.toggle('text-green', netBalance >= 0);
+// =====================================================================
+// Menu Management and Recipes
+// =====================================================================
 
-        renderReportTable(reportSalesTableBody, report.sales);
-        renderReportTable(reportExpensesTableBody, report.expenses);
-
-    } catch (error) {
-        console.error('Error generating report:', error);
-    }
-}
-
-function renderReportTable(tableBody, data) {
-    tableBody.innerHTML = '';
-    if (data.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="4" class="table-empty-state">No data found for this period.</td></tr>`;
-        return;
-    }
-    data.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td class="font-medium">${formatDateForInput(item.date)}</td>
-            <td class="text-gray">${item.item || item.description}</td>
-            <td class="text-gray">${item.amount ? 'Ugshs' + item.amount.toFixed(2) : ''}</td>
-            <td class="text-gray">${item.quantity || ''}</td>
-        `;
-        tableBody.appendChild(row);
-    });
-}
-
-
-// Menu Management
 async function renderMenuItems() {
     menuItemsTableBody.innerHTML = '';
     try {
-        const menuItems = await fetchData(`${BACKEND_API_URL}/menu`);
-        if (menuItems.length === 0) {
+        allMenuItems = await fetchData(`${BACKEND_API_URL}/menu`);
+        if (allMenuItems.length === 0) {
             menuItemsTableBody.innerHTML = `<tr><td colspan="5" class="table-empty-state">No menu items found.</td></tr>`;
             return;
         }
-        menuItems.forEach(item => {
+
+        allMenuItems.forEach(item => {
             const row = document.createElement('tr');
-            row.dataset.menuItemId = item._id;
-            const recipeList = item.recipe.map(ing => {
-                const ingredient = state.allIngredients.find(i => i._id === ing.ingredientId);
-                return `${ingredient?.name || 'Unknown'} x ${ing.quantityUsed}${ingredient?.unit || ''}`;
-            }).join(', ');
             row.innerHTML = `
                 <td class="font-medium">${item.name}</td>
-                <td class="text-gray">Ugshs${item.price.toFixed(2)}</td>
                 <td class="text-gray">${item.category}</td>
-                <td class="text-gray">${recipeList || 'No recipe defined'}</td>
+                <td class="text-gray">Ugshs${item.price.toFixed(2)}</td>
+                <td class="text-gray">${item.recipe.length} ingredients</td>
                 <td class="table-actions">
-                    <button class="edit">Edit</button>
-                    <button class="delete">Delete</button>
+                    <button onclick="editMenuItem('${item._id}')" class="edit">Edit</button>
+                    <button onclick="deleteMenuItem('${item._id}')" class="delete">Delete</button>
                 </td>
             `;
             menuItemsTableBody.appendChild(row);
         });
     } catch (error) {
-        // Handled by fetchData
+        console.error('Failed to render menu items:', error);
     }
 }
 
-function handleMenuFormSubmit(event) {
-    event.preventDefault();
-    const isEditing = !!state.editingMenuItemId;
-
-    const data = {
-        name: itemNameInput.value,
-        price: parseFloat(itemPriceInput.value),
-        category: itemCategoryInput.value,
-        recipe: state.currentRecipe,
-    };
-
-    if (!data.name || isNaN(data.price) || data.price < 0 || !data.category) {
-        showMessageBox('Please fill out all menu item fields correctly.');
-        return;
-    }
-
-    const url = isEditing ? `${BACKEND_API_URL}/menu/${state.editingMenuItemId}` : `${BACKEND_API_URL}/menu`;
-    const method = isEditing ? 'PUT' : 'POST';
-
-    fetchData(url, {
-        method: method,
-        body: JSON.stringify(data),
-    }).then(() => {
-        showMessageBox(`Menu item ${isEditing ? 'updated' : 'added'} successfully!`);
-        resetMenuForm();
-        renderMenuItems();
-        renderOrderForm(); // Refresh order form with new menu item
-    }).catch(error => {
-        console.error('Error submitting menu form:', error);
-    });
-}
-
-async function editMenuItem(menuItemId) {
-    state.editingMenuItemId = menuItemId;
-    try {
-        const menuItem = await fetchData(`${BACKEND_API_URL}/menu/${menuItemId}`);
-        itemNameInput.value = menuItem.name;
-        itemPriceInput.value = menuItem.price;
-        itemCategoryInput.value = menuItem.category;
-        state.currentRecipe = menuItem.recipe;
-        renderCurrentRecipe();
-        menuForm.querySelector('button[type="submit"]').textContent = 'Update Menu Item';
-        cancelMenuEditBtn.classList.remove('hidden');
-    } catch (error) {
-        console.error('Error fetching menu item for edit:', error);
-    }
-}
-
-async function deleteMenuItem(menuItemId) {
-    if (!confirm('Are you sure you want to delete this menu item?')) return;
-    try {
-        const response = await fetchData(`${BACKEND_API_URL}/menu/${menuItemId}`, { method: 'DELETE' });
-        showMessageBox(response.message);
-        renderMenuItems();
-        renderOrderForm(); // Refresh order form
-    } catch (error) {
-        console.error('Error deleting menu item:', error);
-    }
-}
-
-function resetMenuForm() {
-    menuForm.reset();
-    state.editingMenuItemId = null;
-    state.currentRecipe = [];
-    renderCurrentRecipe();
-    menuForm.querySelector('button[type="submit"]').textContent = 'Add Menu Item';
-    cancelMenuEditBtn.classList.add('hidden');
-}
-
-
-// Recipe Management
 async function populateRecipeIngredientSelect() {
     recipeIngredientSelect.innerHTML = '<option value="">-- Select an Ingredient --</option>';
     try {
-        state.allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`);
-        state.allIngredients.forEach(ingredient => {
+        allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`);
+        allIngredients.forEach(ingredient => {
             const option = document.createElement('option');
             option.value = ingredient._id;
             option.textContent = `${ingredient.name} (${ingredient.unit})`;
             recipeIngredientSelect.appendChild(option);
         });
     } catch (error) {
-        console.error('Error populating recipe ingredients:', error);
-    }
-}
-
-function addRecipeIngredient() {
-    const ingredientId = recipeIngredientSelect.value;
-    const quantity = parseFloat(recipeQuantityUsedInput.value);
-
-    if (!ingredientId || isNaN(quantity) || quantity <= 0) {
-        showMessageBox('Please select an ingredient and enter a valid quantity.');
-        return;
-    }
-
-    const ingredient = state.allIngredients.find(i => i._id === ingredientId);
-    if (ingredient) {
-        state.currentRecipe.push({
-            ingredientId: ingredient._id,
-            name: ingredient.name,
-            quantityUsed: quantity,
-        });
-        renderCurrentRecipe();
-        recipeIngredientSelect.value = '';
-        recipeQuantityUsedInput.value = '';
-    } else {
-        showMessageBox('Selected ingredient not found.');
+        console.error('Failed to populate ingredient select:', error);
     }
 }
 
 function renderCurrentRecipe() {
     currentRecipeList.innerHTML = '';
-    if (state.currentRecipe.length === 0) {
-        currentRecipeList.innerHTML = `<li>No ingredients added to recipe.</li>`;
+    if (currentRecipe.length === 0) {
+        currentRecipeList.innerHTML = `<li class="order-list-item">No ingredients in recipe.</li>`;
         return;
     }
-    state.currentRecipe.forEach((item, index) => {
-        const listItem = document.createElement('li');
-        listItem.innerHTML = `
-            <span>${item.name} x ${item.quantityUsed}</span>
-            <button class="remove-recipe-item-btn" data-index="${index}">&times;</button>
-        `;
-        currentRecipeList.appendChild(listItem);
+
+    currentRecipe.forEach((rec, index) => {
+        const ingredient = allIngredients.find(ing => ing._id === rec.ingredient);
+        if (ingredient) {
+            const listItem = document.createElement('li');
+            listItem.classList.add('order-list-item');
+            listItem.innerHTML = `
+                <span>${ingredient.name} x ${rec.quantityUsed} ${ingredient.unit}</span>
+                <button onclick="removeRecipeIngredient(${index})">&times;</button>
+            `;
+            currentRecipeList.appendChild(listItem);
+        }
     });
 }
 
-currentRecipeList.addEventListener('click', (event) => {
-    if (event.target.classList.contains('remove-recipe-item-btn')) {
-        const index = event.target.dataset.index;
-        state.currentRecipe.splice(index, 1);
+addRecipeIngredientBtn.addEventListener('click', () => {
+    const selectedIngredientId = recipeIngredientSelect.value;
+    const quantityUsed = parseFloat(recipeQuantityUsedInput.value);
+
+    if (!selectedIngredientId || isNaN(quantityUsed) || quantityUsed <= 0) {
+        showMessageBox('Please select an ingredient and enter a valid quantity.');
+        return;
+    }
+
+    currentRecipe.push({ ingredient: selectedIngredientId, quantityUsed: quantityUsed });
+    renderCurrentRecipe();
+    recipeIngredientSelect.value = '';
+    recipeQuantityUsedInput.value = '';
+});
+
+window.removeRecipeIngredient = (index) => {
+    currentRecipe.splice(index, 1);
+    renderCurrentRecipe();
+};
+
+function clearMenuForm() {
+    menuForm.reset();
+    menuItemIdInput.value = '';
+    currentRecipe = [];
+    renderCurrentRecipe();
+    document.querySelector('#menu-form button[type="submit"]').textContent = 'Add Menu Item';
+}
+
+window.editMenuItem = (id) => {
+    const item = allMenuItems.find(i => i._id === id);
+    if (item) {
+        menuItemIdInput.value = item._id;
+        itemNameInput.value = item.name;
+        itemPriceInput.value = item.price;
+        itemCategoryInput.value = item.category;
+        currentRecipe = item.recipe;
         renderCurrentRecipe();
+        document.querySelector('#menu-form button[type="submit"]').textContent = 'Update Menu Item';
+    }
+};
+
+window.deleteMenuItem = async (id) => {
+    if (confirm('Are you sure you want to delete this menu item?')) {
+        try {
+            const response = await fetchData(`${BACKEND_API_URL}/menu/${id}`, { method: 'DELETE' });
+            showMessageBox(response.message);
+            await renderMenuItems();
+        } catch (error) {
+            console.error('Failed to delete menu item:', error);
+        }
+    }
+};
+
+menuForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = menuItemIdInput.value;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `${BACKEND_API_URL}/menu/${id}` : `${BACKEND_API_URL}/menu`;
+
+    if (currentRecipe.length === 0) {
+        showMessageBox('Please add at least one ingredient to the recipe.');
+        return;
+    }
+
+    try {
+        const response = await fetchData(url, {
+            method,
+            body: JSON.stringify({
+                name: itemNameInput.value,
+                price: parseFloat(itemPriceInput.value),
+                category: itemCategoryInput.value,
+                recipe: currentRecipe
+            })
+        });
+        showMessageBox(response.message);
+        clearMenuForm();
+        await renderMenuItems();
+    } catch (error) {
+        console.error('Failed to save menu item:', error);
     }
 });
 
+cancelMenuEditBtn.addEventListener('click', clearMenuForm);
 
-// Audit Logs (Placeholder - Assuming a backend endpoint exists)
+
+// =====================================================================
+// Reports Functions
+// =====================================================================
+
+async function generateReports() {
+    const startDate = reportStartDateInput.value;
+    const endDate = reportEndDateInput.value;
+
+    if (!startDate || !endDate) {
+        showMessageBox('Please select a start and end date for the report.');
+        return;
+    }
+
+    reportSalesTableBody.innerHTML = '';
+    reportExpensesTableBody.innerHTML = '';
+
+    try {
+        const [sales, expenses] = await Promise.all([
+            fetchData(`${BACKEND_API_URL}/sales?startDate=${startDate}&endDate=${endDate}`),
+            fetchData(`${BACKEND_API_URL}/expenses?startDate=${startDate}&endDate=${endDate}`)
+        ]);
+
+        let totalSales = sales.reduce((sum, s) => sum + s.amount, 0);
+        let totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+        let netBalance = totalSales - totalExpenses;
+
+        reportTotalSalesSpan.textContent = totalSales.toFixed(2);
+        reportTotalExpensesSpan.textContent = totalExpenses.toFixed(2);
+        reportNetBalanceSpan.textContent = netBalance.toFixed(2);
+
+        sales.forEach(sale => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${formatDateForInput(sale.date)}</td><td>${sale.itemSold}</td><td>Ugshs${sale.amount.toFixed(2)}</td>`;
+            reportSalesTableBody.appendChild(row);
+        });
+
+        expenses.forEach(expense => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${formatDateForInput(expense.date)}</td><td>${expense.category}</td><td>Ugshs${expense.amount.toFixed(2)}</td>`;
+            reportExpensesTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Failed to generate report:', error);
+    }
+}
+
+generateReportBtn.addEventListener('click', generateReports);
+
+
+// =====================================================================
+// Audit Logs Functions (Placeholder)
+// =====================================================================
+
 async function renderAuditLogs() {
+    // This is a placeholder. You would implement the fetch and rendering logic here.
     const auditLogsTableBody = document.getElementById('audit-logs-table-body');
-    auditLogsTableBody.innerHTML = '<tr><td colspan="3" class="table-empty-state">Audit logs functionality not yet fully implemented.</td></tr>';
-    // To implement:
-    // try {
-    //     const logs = await fetchData(`${BACKEND_API_URL}/auditlogs`);
-    //     ... logic to render logs
-    // } catch (error) {
-    //     console.error('Error fetching audit logs:', error);
-    // }
+    if (auditLogsTableBody) {
+        auditLogsTableBody.innerHTML = `<tr><td colspan="3" class="table-empty-state">Audit logs functionality to be implemented.</td></tr>`;
+    }
+    console.log("Audit Logs functionality is not yet implemented.");
 }
 
 
-// --- Initial App Load ---
-document.addEventListener('DOMContentLoaded', () => {
+// =====================================================================
+// General Event Listeners
+// =====================================================================
+navLinks.forEach(link => {
+    link.addEventListener('click', handleNavLinkClick);
+});
+
+menuToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+    sidebarOverlay.classList.toggle('active');
+});
+
+sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.remove('active');
+    sidebarOverlay.classList.remove('active');
+});
+
+messageOkBtn.addEventListener('click', () => {
+    messageBox.classList.add('hidden');
+});
+
+
+// =====================================================================
+// Initial Page Load Check
+// =====================================================================
+
+/**
+ * Checks for a user role in sessionStorage on page load.
+ */
+function checkIfLoggedIn() {
     const userRole = sessionStorage.getItem('userRole');
     if (userRole) {
         initializeApp(userRole);
     } else {
         loginPage.classList.remove('hidden');
+        mainAppContainer.classList.add('hidden');
+        loginForm.reset();
+        document.getElementById('username').focus();
     }
-});
+}
+
+window.addEventListener('load', checkIfLoggedIn);

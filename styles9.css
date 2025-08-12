@@ -1,0 +1,728 @@
+/*
+    Final CSS for the Restaurant Management System
+    Written with both desktop and mobile responsiveness in mind.
+*/
+
+/* Global Styles */
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --background-color: #f4f7f9;
+    --card-background: #ffffff;
+    --text-color: #333333;
+    --light-text-color: #666666;
+    --border-color: #e5e7eb;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --hover-color: #f0f0f0;
+    --sidebar-bg: #1f2937;
+    --sidebar-text: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    line-height: 1.6;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.active {
+    display: block !important;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    padding: 2.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 2rem;
+    font-weight: 300;
+    color: var(--light-text-color);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-modal-btn:hover {
+    color: var(--danger-color);
+}
+
+/* Login Page */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #e2e8f0;
+}
+
+.login-form {
+    background: var(--card-background);
+    padding: 2.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-form h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #1f2937;
+}
+
+.form-group-login {
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.form-group-login label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--light-text-color);
+}
+
+.form-group-login input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-group-login input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.login-button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.login-button:hover {
+    background-color: #0056b3;
+}
+
+.error-message {
+    color: var(--danger-color);
+    margin-top: 1rem;
+    font-size: 0.875rem;
+}
+
+/* Main App Layout (Desktop) */
+#main-app-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    min-height: 100vh;
+}
+
+.sidebar {
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    position: fixed;
+    height: 100vh;
+    width: 250px;
+    z-index: 10;
+    transition: transform 0.3s ease-in-out;
+}
+
+.sidebar-title {
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-title img {
+    height: 32px;
+    width: 32px;
+    margin-right: 0.75rem;
+    border-radius: 50%;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar-nav li a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+
+.sidebar-nav li a:hover,
+.sidebar-nav li a.active-link {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-left-color: var(--primary-color);
+}
+
+.sidebar-nav li a svg {
+    height: 20px;
+    width: 20px;
+    margin-right: 1rem;
+}
+
+.menu-toggle {
+    display: none;
+}
+
+/* Update the main-content styling */
+.main-content {
+    grid-column: 2 / 3;
+    padding-left: 250px;
+    padding: 0; /* Remove all padding from main content container */
+    transition: padding-left 0.3s ease-in-out;
+}
+
+/* Update the header styling */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-background);
+    padding: 1.25rem 2.5rem; /* Apply padding here to space header content */
+    border-bottom: 1px solid var(--border-color);
+    position: static; /* Make the header part of the normal document flow */
+    width: 100%; /* Ensure the header spans the full width of the main content area */
+    z-index: 9;
+    transition: width 0.3s ease-in-out, left 0.3s ease-in-out;
+}
+
+/* Update the content-area styling to add spacing below the header */
+.content-area {
+    padding: 1.5rem 2.5rem; /* This adds the space between the header and the content below it */
+}
+
+/* Adjust the media query for mobile view */
+@media (max-width: 1023px) {
+    .main-content {
+        padding-left: 0;
+        padding-top: 0; /* Also remove padding-top for mobile */
+    }
+
+    .header {
+        position: static;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        justify-content: space-between;
+        /* The header-title is now visible on mobile */
+    }
+
+    .header-title {
+        display: block; /* Make sure the title is visible on mobile */
+    }
+}
+
+.header-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.header-user-info {
+    display: flex;
+    align-items: center;
+}
+
+.header-user-info span {
+    margin-right: 1rem;
+    color: var(--light-text-color);
+}
+
+.header-settings-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+}
+
+.header-settings-btn:hover {
+    background-color: var(--hover-color);
+}
+
+.header-settings-btn svg {
+    height: 24px;
+    width: 24px;
+    color: var(--light-text-color);
+}
+
+.content-area {
+    padding: 1.5rem 2.5rem;
+}
+
+.content-section {
+    display: none;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Reusable Components */
+.section-card {
+    background: var(--card-background);
+    padding: 2rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 var(--shadow-color), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    margin-bottom: 2rem;
+}
+
+.section-card h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+.form-card {
+    background-color: var(--background-color);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.form-card h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: #1f2937;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    color: var(--light-text-color);
+    margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group select {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+    background-color: var(--card-background);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.add-button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.add-button:hover {
+    background-color: #218838;
+}
+
+.cancel-button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.order-list {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.order-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.order-list-item:first-child {
+    border-top: none;
+}
+
+.order-total {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    text-align: right;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--light-text-color);
+    text-transform: uppercase;
+}
+
+.data-table tbody tr:hover {
+    background-color: var(--hover-color);
+}
+
+.table-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.table-actions button.edit {
+    color: var(--primary-color);
+}
+
+.table-actions button.delete {
+    color: var(--danger-color);
+}
+
+.table-actions button.complete {
+    color: var(--success-color);
+}
+
+.date-filter-container {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.date-filter-container .form-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.date-filter-container button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.date-filter-container button:hover {
+    background-color: #0056b3;
+}
+
+/* Reports Dashboard */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.card {
+    background-color: var(--background-color);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-color);
+}
+
+.card-text-sm {
+    font-size: 0.875rem;
+    color: var(--light-text-color);
+    margin-bottom: 0.25rem;
+}
+
+.card-text-bold {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.card-icon {
+    height: 40px;
+    width: 40px;
+    padding: 8px;
+    border-radius: 50%;
+}
+
+.card-icon.green {
+    background-color: #d1f7e0;
+    color: var(--success-color);
+}
+
+.card-icon.red {
+    background-color: #f7d1d1;
+    color: var(--danger-color);
+}
+
+.card-icon.blue {
+    background-color: #d1e5f7;
+    color: var(--primary-color);
+}
+
+.message-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.5);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.message-box-content {
+    background: var(--card-background);
+    padding: 2rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px var(--shadow-color);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+}
+
+.message-box-text {
+    font-size: 1.125rem;
+    margin-bottom: 1.5rem;
+}
+
+.message-box-ok-btn {
+    padding: 0.75rem 2rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* Mobile-Specific Styles */
+@media (max-width: 1023px) {
+    #main-app-container {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: -250px;
+        transform: translateX(0);
+    }
+
+    .sidebar.active {
+        transform: translateX(250px);
+        box-shadow: 0 0 15px var(--shadow-color);
+    }
+
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9;
+        display: none;
+    }
+
+    .sidebar.active + .sidebar-overlay {
+        display: block;
+    }
+
+    .main-content {
+        padding-left: 0;
+        padding-top: 4rem;
+    }
+
+    .menu-toggle {
+        display: block;
+        position: fixed;
+        top: 0.75rem;
+        left: 0.75rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        z-index: 11;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s ease;
+    }
+    
+    .menu-toggle:hover {
+        background-color: var(--hover-color);
+    }
+
+    .menu-toggle svg {
+        height: 28px;
+        width: 28px;
+        color: #1f2937;
+    }
+
+    .header {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        justify-content: flex-end;
+    }
+
+    .header-title {
+        display: none;
+    }
+    
+    .date-filter-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-filter-container .form-group {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .date-filter-container button {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .content-area {
+        padding: 1rem;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        min-width: 700px;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}

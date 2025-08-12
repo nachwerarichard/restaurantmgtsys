@@ -851,7 +851,6 @@ filterSalesBtn.addEventListener('click', renderSalesTransactions);
 const inventoryForm = document.getElementById('inventory-form');
 const ingredientIdInput = document.getElementById('ingredient-id');
 // The other inputs are no longer needed
-const inventoryEndDateInput = document.getElementById('inventory-end-date');
 
 
 async function renderInventoryItems() {

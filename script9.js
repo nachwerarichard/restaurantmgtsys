@@ -817,17 +817,11 @@ async function renderSalesTransactions() {
         sales.forEach(transaction => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td class="font-medium">${transaction._id}</td>
                 <td class="text-gray">${formatDateForInput(transaction.date)}</td>
                 <td class="text-gray">${transaction.itemSold}</td>
                 <td class="text-gray">${transaction.quantity}</td>
                 <td class="text-gray">Ugshs${transaction.amount.toFixed(2)}</td>
-                <td class="text-gray">Ugshs${transaction.costOfGoods.toFixed(2)}</td>
-                <td class="text-gray">Ugshs${transaction.profit.toFixed(2)}</td>
-                <td class="text-gray">${transaction.paymentMethod}</td>
-                <td class="table-actions">
-                    <button class="view-details">View Only</button>
-                </td>
+                
             `;
             salesTransactionsTableBody.appendChild(row);
         });

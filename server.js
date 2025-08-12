@@ -480,6 +480,8 @@ markOrderReady: async (req, res) => {
 
             await session.commitTransaction();
             // You can keep the audit log if you want, or remove it.
+            await createAuditLog('admin', 'mark_order ready', `order ready`);
+
             // await createAuditLog('waiter', 'mark_order_ready', `Order #${order._id} marked as ready.`);
             res.status(200).json({ message: `Order ${id} marked as Ready! Sales recorded.`, order });
 

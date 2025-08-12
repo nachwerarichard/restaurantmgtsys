@@ -435,147 +435,72 @@ const kitchenOrderController = {
         }
     },
 
-    markOrderReady: async (req, res) => {
-        const { id } = req.params;
+markOrderReady: async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const order = await KitchenOrder.findById(id).populate('items.menuItem');
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        if (order.status === 'Ready' || order.status === 'Cancelled') {
+            return res.status(400).json({ message: `Order is already ${order.status}. Cannot mark ready.` });
+        }
+
+        const salesToRecord = [];
+
+        // --- Calculate Sales Details ---
+        for (const orderItem of order.items) {
+            const menuItem = orderItem.menuItem;
+            if (!menuItem) {
+                console.warn(`Warning: Menu item with ID ${orderItem.menuItem._id} not found.`);
+                continue;
+            }
+
+            const itemSaleAmount = menuItem.price * orderItem.quantity;
+            salesToRecord.push({
+                itemSold: menuItem.name,
+                quantity: orderItem.quantity,
+                amount: itemSaleAmount,
+                costOfGoods: 0, // Since there is no inventory, cost is 0
+                profit: itemSaleAmount, // Profit equals sale amount
+                paymentMethod: 'Kitchen Order'
+            });
+        }
+
+        // --- Perform Database Updates in a Transaction ---
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
         try {
-            const order = await KitchenOrder.findById(id).populate({
-                path: 'items.menuItem',
-                populate: {
-                    path: 'recipe.ingredient' // Populate ingredients within the menu item's recipe
-                }
-            });
-
-            if (!order) {
-                return res.status(404).json({ message: 'Order not found' });
-            }
-            if (order.status === 'Ready' || order.status === 'Cancelled') {
-                return res.status(400).json({ message: `Order is already ${order.status}. Cannot mark ready.` });
-            }
-
-            let totalOrderCostOfGoods = 0;
-            const inventoryUpdates = [];
-            const salesToRecord = [];
-            const insufficientStockMessages = [];
-
-            // --- Phase 1: Check Inventory Availability ---
-            for (const orderItem of order.items) {
-                const menuItem = orderItem.menuItem; // Already populated
-                if (!menuItem) {
-                    insufficientStockMessages.push(`Menu item with ID ${orderItem.menuItem._id} not found.`);
-                    continue;
-                }
-
-                if (!menuItem.recipe || menuItem.recipe.length === 0) {
-                    console.warn(`Warning: No recipe defined for menu item "${menuItem.name}". Cannot deduct inventory.`);
-                    // Still allow sale, but cost of goods for this item will be 0
-                    salesToRecord.push({
-                        itemSold: menuItem.name,
-                        quantity: orderItem.quantity,
-                        amount: menuItem.price * orderItem.quantity,
-                        costOfGoods: 0,
-                        profit: menuItem.price * orderItem.quantity,
-                        paymentMethod: 'Kitchen Order'
-                    });
-                    continue;
-                }
-
-                let itemCostOfGoods = 0;
-                for (const recipeItem of menuItem.recipe) {
-                    const ingredient = recipeItem.ingredient; // Already populated
-                    if (!ingredient) {
-                        insufficientStockMessages.push(`Ingredient with ID ${recipeItem.ingredient._id} for "${menuItem.name}" not found.`);
-                        continue;
-                    }
-
-                    const requiredQuantity = recipeItem.quantityUsed * orderItem.quantity;
-                    if (ingredient.quantity < requiredQuantity) {
-                        insufficientStockMessages.push(
-                            `Insufficient stock for "${ingredient.name}" (needed for "${menuItem.name}"). ` +
-                            `Needed: ${requiredQuantity.toFixed(2)} ${ingredient.unit}, ` +
-                            `Available: ${ingredient.quantity.toFixed(2)} ${ingredient.unit}.`
-                        );
-                    }
-                }
-            }
-
-            if (insufficientStockMessages.length > 0) {
-                return res.status(400).json({
-                    message: 'Cannot mark order ready due to insufficient inventory.',
-                    details: insufficientStockMessages
-                });
-            }
-
-            // --- Phase 2: Deduct Inventory and Calculate Costs (if Phase 1 passed) ---
-            for (const orderItem of order.items) {
-                const menuItem = orderItem.menuItem;
-                let itemCostOfGoods = 0;
-
-                if (menuItem.recipe && menuItem.recipe.length > 0) {
-                    for (const recipeItem of menuItem.recipe) {
-                        const ingredient = recipeItem.ingredient;
-                        const requiredQuantity = recipeItem.quantityUsed * orderItem.quantity;
-
-                        // Add to batch update for ingredients
-                        inventoryUpdates.push({
-                            id: ingredient._id,
-                            deductQuantity: requiredQuantity
-                        });
-                        itemCostOfGoods += requiredQuantity * ingredient.costPerUnit;
-                    }
-                }
-
-                const itemSaleAmount = menuItem.price * orderItem.quantity;
-                salesToRecord.push({
-                    itemSold: menuItem.name,
-                    quantity: orderItem.quantity,
-                    amount: itemSaleAmount,
-                    costOfGoods: itemCostOfGoods,
-                    profit: itemSaleAmount - itemCostOfGoods,
-                    paymentMethod: 'Kitchen Order'
-                });
-                totalOrderCostOfGoods += itemCostOfGoods;
-            }
-
-            // --- Phase 3: Perform Database Updates in a Transaction (for atomicity) ---
-            const session = await mongoose.startSession();
-            session.startTransaction();
-
-            try {
-                // Update ingredients
-                for (const update of inventoryUpdates) {
-                    await Ingredient.findByIdAndUpdate(
-                        update.id,
-                        { $inc: { quantity: -update.deductQuantity } }, // Decrement quantity
-                        { session }
-                    );
-                }
-
-                // Record sales
+            // Record sales
+            if (salesToRecord.length > 0) {
                 await Sale.insertMany(salesToRecord, { session });
-
-                // Update order status
-                order.status = 'Ready';
-                await order.save({ session });
-
-                await session.commitTransaction();
-                await createAuditLog('waiter', 'mark_order_ready', `Order #${order._id} marked as ready.`);
-                res.status(200).json({ message: `Order ${id} marked as Ready! Inventory updated and sales recorded.`, order });
-
-            } catch (transactionError) {
-                await session.abortTransaction();
-                console.error('Transaction failed:', transactionError);
-                await createAuditLog('system', 'transaction_failed', `Transaction failed for order #${id}. Error: ${transactionError.message}`);
-                res.status(500).json({ message: 'Failed to process order. Transaction aborted.', error: transactionError.message });
-            } finally {
-                session.endSession();
             }
 
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
-    },
+            // Update order status
+            order.status = 'Ready';
+            await order.save({ session });
 
+            await session.commitTransaction();
+            // You can keep the audit log if you want, or remove it.
+            // await createAuditLog('waiter', 'mark_order_ready', `Order #${order._id} marked as ready.`);
+            res.status(200).json({ message: `Order ${id} marked as Ready! Sales recorded.`, order });
+
+        } catch (transactionError) {
+            await session.abortTransaction();
+            console.error('Transaction failed:', transactionError);
+            res.status(500).json({ message: 'Failed to process order. Transaction aborted.', error: transactionError.message });
+        } finally {
+            session.endSession();
+        }
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+},
+    
     cancelKitchenOrder: async (req, res) => {
         const { id } = req.params;
 

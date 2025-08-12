@@ -213,7 +213,7 @@
                     </div>
                 </section>
 
-<section id="inventory-management" class="content-section">
+                   <section id="inventory-management" class="content-section">
     <h2>Inventory Management</h2>
     <div class="date-filter-container">
         <div class="form-group">
@@ -238,28 +238,8 @@
                     <input type="text" id="ingredient-name" required>
                 </div>
                 <div class="form-group">
-                    <label for="inventory-date">Date</label>
-                    <input type="date" id="inventory-date" required>
-                </div>
-                <div class="form-group">
-                    <label for="ingredient-opening-stock">Opening Stock</label>
-                    <input type="number" id="ingredient-opening-stock" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="ingredient-sold-stock">Sold Stock</label>
-                    <input type="number" id="ingredient-sold-stock" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="ingredient-closing-stock">Closing Stock</label>
-                    <input type="number" id="ingredient-closing-stock" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="ingredient-spoiled-stock">Spoiled Stock</label>
-                    <input type="number" id="ingredient-spoiled-stock" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="ingredient-unit">Unit (e.g., kg, liter, pcs)</label>
-                    <input type="text" id="ingredient-unit" required>
+                    <label for="ingredient-cost-per-unit">Cost Per Unit (Ugsh)</label>
+                    <input type="number" id="ingredient-cost-per-unit" step="0.01" required>
                 </div>
             </div>
             <div class="form-buttons">
@@ -277,13 +257,8 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Date</th>
                         <th>Name</th>
-                        <th>Unit</th>
-                        <th>Opening Stock</th>
-                        <th>Sold Stock</th>
-                        <th>Closing Stock</th>
-                        <th>Spoiled Stock</th>
+                        <th>Cost/Unit</th>
                         <th>Actions</th>
                     </tr>
                 </thead>

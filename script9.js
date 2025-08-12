@@ -1227,17 +1227,17 @@ generateReportBtn.addEventListener('click', generateReports);
  * Populates the recipe ingredient select dropdown with all available ingredients.
  */
 async function populateRecipeIngredientSelect() {
-    recipeIngredientSelect.innerHTML = '<option value="">-- Select Ingredient --</option>';
-    try {
-        allIngredients.forEach(ingredient => {
-            const option = document.createElement('option');
-            option.value = ingredient._id;
-            option.textContent = `${ingredient.name} (${ingredient.unit})`;
-            recipeIngredientSelect.appendChild(option);
-        });
-    } catch (error) {
-        // Error handled by fetchData
-    }
+    recipeIngredientSelect.innerHTML = '<option value="">-- Select Ingredient --</option>';
+    try {
+        allIngredients.forEach(ingredient => {
+            const option = document.createElement('option');
+            option.value = ingredient._id;
+            option.textContent = ingredient.name;
+            recipeIngredientSelect.appendChild(option);
+        });
+    } catch (error) {
+        // Error handled by fetchData
+    }
 }
 
 

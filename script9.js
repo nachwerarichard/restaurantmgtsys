@@ -847,25 +847,51 @@ filterSalesBtn.addEventListener('click', renderSalesTransactions);
 /**
  * Renders the inventory items in the table by fetching from backend.
  */
-async function renderInventoryItems() {
+// Variable declarations for new fields
+const inventoryDateInput = document.getElementById('inventory-date');
+const ingredientOpeningStockInput = document.getElementById('ingredient-opening-stock');
+const ingredientSoldStockInput = document.getElementById('ingredient-sold-stock');
+const ingredientClosingStockInput = document.getElementById('ingredient-closing-stock');
+const ingredientSpoiledStockInput = document.getElementById('ingredient-spoiled-stock');
+const inventoryStartDateInput = document.getElementById('inventory-start-date');
+const inventoryEndDateInput = document.getElementById('inventory-end-date');
+const filterInventoryBtn = document.getElementById('filter-inventory-btn');
+
+async function renderInventoryItems(startDate = null, endDate = null) {
     inventoryItemsTableBody.innerHTML = ''; // Clear existing rows
     try {
-        allIngredients = await fetchData(`${BACKEND_API_URL}/inventory`); // Fetch and store all ingredients
+        let url = `${BACKEND_API_URL}/inventory`;
+        const params = new URLSearchParams();
+
+        if (startDate) {
+            params.append('startDate', startDate);
+        }
+        if (endDate) {
+            params.append('endDate', endDate);
+        }
+
+        if (params.toString()) {
+            url += `?${params.toString()}`;
+        }
+
+        allIngredients = await fetchData(url); // Fetch and store all ingredients
+
         if (allIngredients.length === 0) {
-            inventoryItemsTableBody.innerHTML = `<tr><td colspan="8" class="table-empty-state">No inventory items added yet.</td></tr>`;
+            inventoryItemsTableBody.innerHTML = `<tr><td colspan="9" class="table-empty-state">No inventory items added yet.</td></tr>`;
             return;
         }
+
         allIngredients.forEach(item => {
-            const totalValue = item.quantity * item.costPerUnit;
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="font-medium">${item._id}</td>
+                <td class="text-gray">${new Date(item.date).toLocaleDateString()}</td>
                 <td class="text-gray">${item.name}</td>
-                <td class="text-gray">${item.quantity.toFixed(2)}</td>
                 <td class="text-gray">${item.unit}</td>
-                <td class="text-gray">Ugshs${item.costPerUnit.toFixed(2)}</td>
-                <td class="text-gray">${item.spoilage}</td>
-                <td class="text-gray">Ugshs${totalValue.toFixed(2)}</td>
+                <td class="text-gray">${item.openingStock ? item.openingStock.toFixed(2) : '-'}</td>
+                <td class="text-gray">${item.soldStock ? item.soldStock.toFixed(2) : '-'}</td>
+                <td class="text-gray">${item.closingStock ? item.closingStock.toFixed(2) : '-'}</td>
+                <td class="text-gray">${item.spoiledStock ? item.spoiledStock.toFixed(2) : '-'}</td>
                 <td class="table-actions">
                     ${checkUserRole(['admin']) ? `<button onclick="editInventoryItem('${item._id}')" class="edit">Edit</button>` : ''}
                     ${checkUserRole(['admin']) ? `<button onclick="deleteInventoryItem('${item._id}')" class="delete">Delete</button>` : ''}
@@ -877,6 +903,7 @@ async function renderInventoryItems() {
         // Error handled by fetchData
     }
 }
+
 /**
  * Handles form submission for adding/editing inventory items.
  */
@@ -888,18 +915,39 @@ inventoryForm.addEventListener('submit', async (event) => {
     }
 
     const id = ingredientIdInput.value;
+    const date = inventoryDateInput.value;
     const name = ingredientNameInput.value.trim();
-    const quantity = parseFloat(ingredientQuantityInput.value);
     const unit = ingredientUnitInput.value.trim();
-    const costPerUnit = parseFloat(ingredientCostPerUnitInput.value);
-    const spoilage = parseFloat(ingredientSpoilageInput.value);
+    const openingStock = parseFloat(ingredientOpeningStockInput.value) || null;
+    const soldStock = parseFloat(ingredientSoldStockInput.value) || null;
+    const closingStock = parseFloat(ingredientClosingStockInput.value) || null;
+    const spoiledStock = parseFloat(ingredientSpoiledStockInput.value) || null;
 
-    if (!name || isNaN(quantity) || quantity < 0 || isNaN(spoilage) || !unit || isNaN(costPerUnit) || costPerUnit < 0) {
-        showMessageBox('Please fill in all fields correctly for inventory item.');
+    if (!name || !unit || !date) {
+        showMessageBox('Please fill in the Ingredient Name, Date, and Unit fields.');
         return;
     }
 
-    const payload = { name, quantity, unit, costPerUnit, spoilage };
+    // Validate if any stock field is a valid non-negative number
+    if (
+        (openingStock !== null && (isNaN(openingStock) || openingStock < 0)) ||
+        (soldStock !== null && (isNaN(soldStock) || soldStock < 0)) ||
+        (closingStock !== null && (isNaN(closingStock) || closingStock < 0)) ||
+        (spoiledStock !== null && (isNaN(spoiledStock) || spoiledStock < 0))
+    ) {
+        showMessageBox('Please enter valid, non-negative numbers for stock fields.');
+        return;
+    }
+
+    const payload = {
+        name,
+        date,
+        unit,
+        openingStock,
+        soldStock,
+        closingStock,
+        spoiledStock
+    };
 
     try {
         if (id) {
@@ -946,10 +994,12 @@ window.editInventoryItem = async (id) => {
         if (itemToEdit) {
             ingredientIdInput.value = itemToEdit._id;
             ingredientNameInput.value = itemToEdit.name;
-            ingredientQuantityInput.value = itemToEdit.quantity;
+            inventoryDateInput.value = itemToEdit.date.split('T')[0]; // Format date for input field
             ingredientUnitInput.value = itemToEdit.unit;
-            ingredientCostPerUnitInput.value = itemToEdit.costPerUnit;
-            ingredientSpoilageInput.value = itemToEdit.spoilage;
+            ingredientOpeningStockInput.value = itemToEdit.openingStock;
+            ingredientSoldStockInput.value = itemToEdit.soldStock;
+            ingredientClosingStockInput.value = itemToEdit.closingStock;
+            ingredientSpoiledStockInput.value = itemToEdit.spoiledStock;
             cancelIngredientEditBtn.classList.remove('hidden');
             ingredientNameInput.focus();
         } else {
@@ -991,10 +1041,12 @@ window.deleteInventoryItem = async (id) => {
     }
 };
 
-// Event listeners for inventory date filters (currently just re-renders all)
-filterInventoryBtn.addEventListener('click', renderInventoryItems);
-
-
+// Event listeners for inventory date filters
+filterInventoryBtn.addEventListener('click', () => {
+    const startDate = inventoryStartDateInput.value;
+    const endDate = inventoryEndDateInput.value;
+    renderInventoryItems(startDate, endDate);
+});
 // --- Expenses Management Functions (CRUD) ---
 
 async function renderExpenses() {

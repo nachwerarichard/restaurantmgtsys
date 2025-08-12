@@ -888,12 +888,12 @@ inventoryForm.addEventListener('submit', async (event) => {
     const id = ingredientIdInput.value;
     const name = ingredientNameInput.value.trim();
 
-    if (!name || isNaN(costPerUnit) || costPerUnit < 0) {
+    if (!name ) {
         showMessageBox('Please fill in the ingredient name and a valid cost.');
         return;
     }
 
-    const payload = { name, costPerUnit };
+    const payload = { name };
 
     try {
         if (id) {

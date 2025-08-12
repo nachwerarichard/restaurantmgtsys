@@ -50,10 +50,7 @@ const User = mongoose.model('User', userSchema);
 // Ingredient Schema
 const ingredientSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true, unique: true },
-    quantity: { type: Number, required: true, min: 0, default: 0 }, // Current stock
-    unit: { type: String, required: true, trim: true }, // e.g., kg, liter, pcs
     costPerUnit: { type: Number, required: true, min: 0 },
-    spoilage: { type: Number, required: true, min: 0, default: 0 }, // Current stock
 }, { timestamps: true });
 const Ingredient = mongoose.model('Ingredient', ingredientSchema);
 
@@ -65,7 +62,6 @@ const menuItemSchema = new mongoose.Schema({
     // Embedded recipe: array of objects linking to Ingredient and quantity used
     recipe: [{
         ingredient: { type: mongoose.Schema.Types.ObjectId, ref: 'Ingredient', required: true },
-        quantityUsed: { type: Number, required: true, min: 0 }
     }]
 }, { timestamps: true });
 const MenuItem = mongoose.model('MenuItem', menuItemSchema);
@@ -455,59 +451,9 @@ const kitchenOrderController = {
             }
 
             let totalOrderCostOfGoods = 0;
-            const inventoryUpdates = [];
             const salesToRecord = [];
-            const insufficientStockMessages = [];
 
-            // --- Phase 1: Check Inventory Availability ---
-            for (const orderItem of order.items) {
-                const menuItem = orderItem.menuItem; // Already populated
-                if (!menuItem) {
-                    insufficientStockMessages.push(`Menu item with ID ${orderItem.menuItem._id} not found.`);
-                    continue;
-                }
-
-                if (!menuItem.recipe || menuItem.recipe.length === 0) {
-                    console.warn(`Warning: No recipe defined for menu item "${menuItem.name}". Cannot deduct inventory.`);
-                    // Still allow sale, but cost of goods for this item will be 0
-                    salesToRecord.push({
-                        itemSold: menuItem.name,
-                        quantity: orderItem.quantity,
-                        amount: menuItem.price * orderItem.quantity,
-                        costOfGoods: 0,
-                        profit: menuItem.price * orderItem.quantity,
-                        paymentMethod: 'Kitchen Order'
-                    });
-                    continue;
-                }
-
-                let itemCostOfGoods = 0;
-                for (const recipeItem of menuItem.recipe) {
-                    const ingredient = recipeItem.ingredient; // Already populated
-                    if (!ingredient) {
-                        insufficientStockMessages.push(`Ingredient with ID ${recipeItem.ingredient._id} for "${menuItem.name}" not found.`);
-                        continue;
-                    }
-
-                    const requiredQuantity = recipeItem.quantityUsed * orderItem.quantity;
-                    if (ingredient.quantity < requiredQuantity) {
-                        insufficientStockMessages.push(
-                            `Insufficient stock for "${ingredient.name}" (needed for "${menuItem.name}"). ` +
-                            `Needed: ${requiredQuantity.toFixed(2)} ${ingredient.unit}, ` +
-                            `Available: ${ingredient.quantity.toFixed(2)} ${ingredient.unit}.`
-                        );
-                    }
-                }
-            }
-
-            if (insufficientStockMessages.length > 0) {
-                return res.status(400).json({
-                    message: 'Cannot mark order ready due to insufficient inventory.',
-                    details: insufficientStockMessages
-                });
-            }
-
-            // --- Phase 2: Deduct Inventory and Calculate Costs (if Phase 1 passed) ---
+            // Phase 2: Deduct Inventory and Calculate Costs (if Phase 1 passed)
             for (const orderItem of order.items) {
                 const menuItem = orderItem.menuItem;
                 let itemCostOfGoods = 0;
@@ -515,14 +461,10 @@ const kitchenOrderController = {
                 if (menuItem.recipe && menuItem.recipe.length > 0) {
                     for (const recipeItem of menuItem.recipe) {
                         const ingredient = recipeItem.ingredient;
-                        const requiredQuantity = recipeItem.quantityUsed * orderItem.quantity;
-
-                        // Add to batch update for ingredients
-                        inventoryUpdates.push({
-                            id: ingredient._id,
-                            deductQuantity: requiredQuantity
-                        });
-                        itemCostOfGoods += requiredQuantity * ingredient.costPerUnit;
+                        if (ingredient) {
+                            const requiredQuantity = recipeItem.quantityUsed * orderItem.quantity;
+                            itemCostOfGoods += requiredQuantity * ingredient.costPerUnit;
+                        }
                     }
                 }
 
@@ -538,38 +480,21 @@ const kitchenOrderController = {
                 totalOrderCostOfGoods += itemCostOfGoods;
             }
 
-            // --- Phase 3: Perform Database Updates in a Transaction (for atomicity) ---
-            const session = await mongoose.startSession();
-            session.startTransaction();
-
             try {
-                // Update ingredients
-                for (const update of inventoryUpdates) {
-                    await Ingredient.findByIdAndUpdate(
-                        update.id,
-                        { $inc: { quantity: -update.deductQuantity } }, // Decrement quantity
-                        { session }
-                    );
-                }
-
                 // Record sales
-                await Sale.insertMany(salesToRecord, { session });
+                await Sale.insertMany(salesToRecord);
 
                 // Update order status
                 order.status = 'Ready';
-                await order.save({ session });
+                await order.save();
 
-                await session.commitTransaction();
                 await createAuditLog('waiter', 'mark_order_ready', `Order #${order._id} marked as ready.`);
-                res.status(200).json({ message: `Order ${id} marked as Ready! Inventory updated and sales recorded.`, order });
+                res.status(200).json({ message: `Order ${id} marked as Ready! Sales recorded.`, order });
 
-            } catch (transactionError) {
-                await session.abortTransaction();
-                console.error('Transaction failed:', transactionError);
-                await createAuditLog('system', 'transaction_failed', `Transaction failed for order #${id}. Error: ${transactionError.message}`);
-                res.status(500).json({ message: 'Failed to process order. Transaction aborted.', error: transactionError.message });
-            } finally {
-                session.endSession();
+            } catch (error) {
+                console.error('Failed to process order:', error);
+                await createAuditLog('system', 'update_failed', `Failed to process order #${id}. Error: ${error.message}`);
+                res.status(500).json({ message: 'Failed to process order.', error: error.message });
             }
 
         } catch (error) {
@@ -598,6 +523,8 @@ const kitchenOrderController = {
         }
     }
 };
+
+module.exports = kitchenOrderController;
 
 // --- Sales Controllers ---
 const salesController = {

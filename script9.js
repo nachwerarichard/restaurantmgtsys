@@ -138,15 +138,7 @@ const filterSalesBtn = document.getElementById('filter-sales-btn');
 
 // Inventory Management Elements
 const ingredientNameInput = document.getElementById('ingredient-name');
-const ingredientQuantityInput = document.getElementById('ingredient-quantity');
-const ingredientUnitInput = document.getElementById('ingredient-unit');
-const ingredientCostPerUnitInput = document.getElementById('ingredient-cost-per-unit');
-const ingredientSpoilageInput = document.getElementById('ingredient-spoilage');
-const inventoryItemsTableBody = document.getElementById('inventory-items-table-body');
 const cancelIngredientEditBtn = document.getElementById('cancel-ingredient-edit-btn');
-const inventoryStartDateInput = document.getElementById('inventory-start-date');
-const inventoryEndDateInput = document.getElementById('inventory-end-date');
-const filterInventoryBtn = document.getElementById('filter-inventory-btn');
 
 
 // Expenses Management Elements

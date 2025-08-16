@@ -975,7 +975,6 @@ window.deleteInventoryItem = async (id) => {
 };
 
 // Event listeners for inventory date filters (currently just re-renders all)
-filterInventoryBtn.addEventListener('click', renderInventoryItems);
 
 // --- Expenses Management Functions (CRUD) ---
 

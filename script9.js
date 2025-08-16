@@ -439,8 +439,6 @@ async function initializeApp(userRole) {
     kitchenEndDateInput.value = today;
     salesStartDateInput.value = thirtyDaysAgo;
     salesEndDateInput.value = today;
-    inventoryStartDateInput.value = thirtyDaysAgo;
-    inventoryEndDateInput.value = today;
     expenseStartDateInput.value = thirtyDaysAgo;
     expenseEndDateInput.value = today;
     reportStartDateInput.value = thirtyDaysAgo;

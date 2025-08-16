@@ -139,6 +139,7 @@ const filterSalesBtn = document.getElementById('filter-sales-btn');
 // Inventory Management Elements
 const ingredientNameInput = document.getElementById('ingredient-name');
 const cancelIngredientEditBtn = document.getElementById('cancel-ingredient-edit-btn');
+const inventoryItemsTableBody = document.getElementById('inventory-items-table-body');
 
 
 // Expenses Management Elements

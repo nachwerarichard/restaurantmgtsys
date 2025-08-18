@@ -1314,7 +1314,7 @@ async function renderMenuItems() {
                 <td class="text-gray">${item.name}</td>
                 <td class="text-gray">${item.category}</td>
                 <td class="text-gray">Ugshs${item.price.toFixed(2)}</td>
-                <td class="text-gray">${recipeDisplay}</td>
+                
                 <td class="table-actions">
                     ${checkUserRole(['admin']) ?
                         `<button onclick="openRecipeEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="edit">Edit</button>` :

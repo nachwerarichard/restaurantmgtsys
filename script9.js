@@ -1535,7 +1535,6 @@ async function saveEditedMenuItem() {
         showMessageBox('Error updating menu item.');
     }
 }
-document.getElementById('add-recipe-ingredient-btn').addEventListener('click', saveEditedMenuItem);
 
 
 // Initialize: Check for session and show appropriate content

@@ -179,7 +179,6 @@ const cancelMenuEditBtn = document.getElementById('cancel-menu-edit-btn');
 // Recipe Management Elements
 const recipeIngredientSelect = document.getElementById('recipe-ingredient-select');
 const recipeQuantityUsedInput = document.getElementById('recipe-quantity-used');
-const addRecipeIngredientBtn = document.getElementById('add-recipe-ingredient-btn');
 const currentRecipeList = document.getElementById('current-recipe-list');
 
 // Login elements
@@ -1249,44 +1248,6 @@ function renderCurrentRecipe() {
 /**
  * Adds an ingredient to the current menu item's recipe (in-memory).
  */
-addRecipeIngredientBtn.addEventListener('click', () => {
-    if (!checkUserRole(['admin'])) {
-        showMessageBox('You do not have permission to add a recipe ingredient.');
-        return;
-    }
-    const selectedIngredientId = recipeIngredientSelect.value;
-
-    if (!selectedIngredientId ) {
-        showMessageBox('Please select an ingredient and enter a valid quantity used.');
-        return;
-    }
-
-    // Check if ingredient is already in the recipe
-    const existingRecipeItemIndex = currentRecipe.findIndex(item => item.ingredient === selectedIngredientId);
-    if (existingRecipeItemIndex > -1) {
-        // Update quantity if already exists
-    } else {
-        // Add new ingredient to recipe
-        currentRecipe.push({ ingredient: selectedIngredientId });
-    }
-
-    renderCurrentRecipe();
-    recipeIngredientSelect.value = ''; // Reset select
-});
-
-/**
- * Removes an ingredient from the current menu item's recipe (in-memory).
- * @param {number} index - The index of the recipe ingredient to remove.
- */
-window.removeRecipeIngredient = (index) => {
-    if (!checkUserRole(['admin'])) {
-        showMessageBox('You do not have permission to remove a recipe ingredient.');
-        return;
-    }
-    currentRecipe.splice(index, 1);
-    renderCurrentRecipe();
-};
-
 
 /**
  * Renders the menu items in the table by fetching from backend.

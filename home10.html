@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Tailwind CSS configuration for custom styles (optional but helpful)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-dark': '#1e293b', // slate-800
+                        'primary-light': '#f8fafc', // slate-50
+                        'accent-blue': '#3b82f6', // blue-500
+                        'accent-green': '#10b981', // emerald-500
+                        'accent-red': '#ef4444', // red-500
+                        'card-bg': '#ffffff', // white
+                    },
+                },
+            },
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    </head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
+        <form id="login-form" class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+            <h2 class="text-3xl font-bold mb-6 text-center text-primary-dark">Login to Patrinah Hotel RMS</h2>
+            
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" id="username" name="username" required 
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue transition duration-150 ease-in-out">
+            </div>
+            
+            <div class="mb-6">
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" id="password" name="password" required 
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue transition duration-150 ease-in-out">
+            </div>
+            
+            <button type="submit" class="w-full bg-accent-blue text-white py-3 rounded-lg font-semibold text-lg hover:bg-blue-600 transition duration-300 shadow-md hover:shadow-lg">
+                Login
+            </button>
+            
+            <p id="error-message" class="text-red-600 text-center mt-4 hidden">Incorrect username or password. Please try again.</p>
+        </form>
+    </div>
+
+    <div id="main-app-container" class="min-h-screen flex relative hidden">
+        
+        <button id="menu-toggle" class="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-white shadow-md text-gray-700 hover:bg-gray-200 transition duration-200">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+
+        <aside class="fixed inset-y-0 left-0 z-30 w-64 bg-primary-dark text-primary-light transform transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0" id="sidebar">
+            <div class="p-6 flex items-center border-b border-slate-700 h-20">
+                <img src="patrina.png" alt="Patrinah Hotel Logo" class="h-8 w-8 mr-3 rounded-full object-cover">
+                <span class="text-xl font-semibold whitespace-nowrap">Patrinah Hotel</span>
+            </div>
+            
+            <nav class="flex-grow p-4">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" data-section="order-management" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200 bg-slate-700 text-white">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            Make Order
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="kitchen" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Kitchen
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="sales" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            Sales
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="expenses" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                            Expenses
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="reports" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            Reports
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="menu-management" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            Menu Management
+                        </a>
+                    </li>
+                     <li>
+                        <a href="#" data-section="inventory-management" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m0-10l-8 4"></path></svg>
+                            Inventory
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="auditlogs" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                            Audit Logs
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="p-6 border-t border-slate-700">
+                <button type="button" id="logout-btn" class="w-full bg-accent-red text-white py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-300 shadow-md">
+                    Log Out
+                </button>
+            </div>
+        </aside>
+
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black opacity-0 lg:opacity-0 transition-opacity duration-300 z-20 pointer-events-none"></div>
+
+        <main class="flex-1 lg:ml-64 overflow-y-auto">
+            
+            <header class="bg-card-bg shadow-md p-4 sticky top-0 z-10 flex justify-between items-center h-20">
+                <h1 id="current-section-title" class="text-2xl font-semibold text-primary-dark">Order Management</h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">You are Welcome!</span>
+                    <button class="text-gray-500 hover:text-accent-blue transition duration-150 p-2 rounded-full hover:bg-gray-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                </div>
+            </header>
+
+            <div id="content-area" class="p-4 md:p-8">
+
+                <section id="order-management" class="content-section active space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Order Management</h2>
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-5 text-gray-800 border-b pb-3">Create New Order</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                            <div class="space-y-1">
+                                <label for="order-menu-item" class="block text-sm font-medium text-gray-700">Select Item</label>
+                                <select id="order-menu-item" class="form-select block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue transition duration-150 ease-in-out">
+                                    </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label for="order-quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
+                                <input type="number" id="order-quantity" value="1" min="1" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue transition duration-150 ease-in-out">
+                            </div>
+                            <button id="add-to-order-btn" class="bg-accent-green text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-600 transition duration-300 shadow-md">Add to Order</button>
+                        </div>
+
+                        <h4 class="text-lg font-medium mt-8 mb-4 border-b pb-2 text-gray-700">Current Order</h4>
+                        <ul id="current-order-list" class="space-y-2 mb-6 divide-y divide-gray-200">
+                            </ul>
+                        
+                        <div class="flex justify-between items-center text-xl font-bold mb-6 pt-4 border-t border-gray-300">
+                            <span>Total:</span>
+                            <span class="text-accent-blue">Ugshs. <span id="current-order-total">0.00</span></span>
+                        </div>
+
+                        <button id="place-order-btn" class="w-full bg-accent-blue text-white py-3 rounded-lg font-semibold text-lg hover:bg-blue-600 transition duration-300 shadow-xl">Place Order</button>
+                    </div>
+
+                    <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full text-center">
+                            <p id="message-text" class="text-lg font-medium mb-4 text-gray-700"></p>
+                            <button id="message-ok-btn" class="bg-accent-blue text-white py-2 px-6 rounded-lg font-semibold hover:bg-blue-600 transition duration-300">
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="kitchen" class="content-section hidden space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Kitchen Management</h2>
+                    
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 bg-white p-4 rounded-lg shadow-md border border-gray-200 items-end">
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="kitchen-start-date" class="block text-sm font-medium text-gray-700">Start Date:</label>
+                            <input type="date" id="kitchen-start-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="kitchen-end-date" class="block text-sm font-medium text-gray-700">End Date:</label>
+                            <input type="date" id="kitchen-end-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <button id="filter-kitchen-btn" class="bg-accent-blue text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 w-full sm:w-auto">Filter Orders</button>
+                    </div>
+
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-5 text-gray-800">Current Orders</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kitchen-orders-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="sales" class="content-section hidden space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Sales Management</h2>
+                    
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 bg-white p-4 rounded-lg shadow-md border border-gray-200 items-end">
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="sales-start-date" class="block text-sm font-medium text-gray-700">Start Date:</label>
+                            <input type="date" id="sales-start-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="sales-end-date" class="block text-sm font-medium text-gray-700">End Date:</label>
+                            <input type="date" id="sales-end-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <button id="filter-sales-btn" class="bg-accent-blue text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 w-full sm:w-auto">Filter Sales</button>
+                    </div>
+                    
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-5 text-gray-800">Recent Transactions</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-transactions-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="inventory-management" class="content-section hidden space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Inventory Management</h2>
+                    
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-5 text-gray-800">Raw Ingredients Stock</h3>
+                        <form id="inventory-form" class="bg-gray-50 p-6 rounded-lg shadow-inner mb-6 space-y-4">
+                            <h4 class="text-lg font-medium text-gray-700 border-b pb-2">Add/Edit Ingredient</h4>
+                            <input type="hidden" id="ingredient-id">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-1">
+                                    <label for="ingredient-name" class="block text-sm font-medium text-gray-700">Ingredient Name</label>
+                                    <input type="text" id="ingredient-name" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                            </div>
+                            <div class="flex space-x-4 pt-4">
+                                <button type="submit" class="bg-accent-green text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-600 transition duration-300 shadow-md">
+                                    Save Ingredient
+                                </button>
+                                <button type="button" id="cancel-ingredient-edit-btn" class="bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-600 transition duration-300 shadow-md hidden">
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-items-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="expenses" class="content-section hidden space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Expenses Management</h2>
+                    
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 bg-white p-4 rounded-lg shadow-md border border-gray-200 items-end">
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="expense-start-date" class="block text-sm font-medium text-gray-700">Start Date:</label>
+                            <input type="date" id="expense-start-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="expense-end-date" class="block text-sm font-medium text-gray-700">End Date:</label>
+                            <input type="date" id="expense-end-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <button id="filter-expenses-btn" class="bg-accent-blue text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 w-full sm:w-auto">Filter Expenses</button>
+                    </div>
+                    
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-5 text-gray-800">Add/View Expenses</h3>
+                        <form id="expense-form" class="bg-gray-50 p-6 rounded-lg shadow-inner mb-6 space-y-4">
+                            <h4 class="text-lg font-medium text-gray-700 border-b pb-2">Add/Edit Expense</h4>
+                            <input type="hidden" id="expense-id">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div class="space-y-1">
+                                    <label for="expense-date" class="block text-sm font-medium text-gray-700">Date</label>
+                                    <input type="date" id="expense-date" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                                <div class="space-y-1">
+                                    <label for="expense-category" class="block text-sm font-medium text-gray-700">Category</label>
+                                    <input type="text" id="expense-category" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                                <div class="space-y-1">
+                                    <label for="expense-description" class="block text-sm font-medium text-gray-700">Description</label>
+                                    <input type="text" id="expense-description" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                                <div class="space-y-1">
+                                    <label for="expense-amount" class="block text-sm font-medium text-gray-700">Amount (Ugshs)</label>
+                                    <input type="number" id="expense-amount" step="0.01" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                            </div>
+                            <div class="flex space-x-4 pt-4">
+                                <button type="submit" class="bg-accent-green text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-600 transition duration-300 shadow-md">
+                                    Save Expense
+                                </button>
+                                <button type="button" id="cancel-expense-edit-btn" class="bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-600 transition duration-300 shadow-md hidden">
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        </form>
+
+                        <h4 class="text-lg font-medium mt-8 mb-4 text-gray-700 border-b pb-2">Recent Expenses</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenses-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="reports" class="content-section hidden space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Reports</h2>
+                    
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 bg-white p-4 rounded-lg shadow-md border border-gray-200 items-end">
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="report-start-date" class="block text-sm font-medium text-gray-700">Start Date:</label>
+                            <input type="date" id="report-start-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <div class="space-y-1 w-full sm:w-auto">
+                            <label for="report-end-date" class="block text-sm font-medium text-gray-700">End Date:</label>
+                            <input type="date" id="report-end-date" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <button id="generate-report-btn" class="bg-accent-blue text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 w-full sm:w-auto">Generate Report</button>
+                    </div>
+
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-6 text-gray-800 border-b pb-3">Financial Overview</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div class="bg-white p-5 rounded-xl shadow-md flex items-center justify-between border-l-4 border-accent-green">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Total Sales (Filtered)</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="report-total-sales">Ugshs 0.00</p>
+                                </div>
+                                <svg class="w-8 h-8 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.592 1L21 12h-3.812c-.622 1.043-1.554 1.795-2.67 2.234l-1.355 1.355C12.71 17.065 11.2 17.5 9.75 17.5H4.25c-1.24 0-2.25-1.01-2.25-2.25v-2.5c0-1.24 1.01-2.25 2.25-2.25h5.5c1.45 0 2.96-.435 4.125-1.25l1.355-1.355C14.462 7.105 15.394 6.353 16.016 5.31H21l-5.408-2.704C14.08 2.402 13.11 2 12 2z"></path></svg>
+                            </div>
+                            
+                            <div class="bg-white p-5 rounded-xl shadow-md flex items-center justify-between border-l-4 border-accent-red">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Total Expenses (Filtered)</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="report-total-expenses">Ugshs. 0.00</p>
+                                </div>
+                                <svg class="w-8 h-8 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M12 17h.01M7 12h10l-1 4H8l-1-4z"></path></svg>
+                            </div>
+
+                            <div class="bg-white p-5 rounded-xl shadow-md flex items-center justify-between border-l-4 border-accent-blue">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Net Balance (Profit/Loss)</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="report-net-balance">Ugshs. 0.00</p>
+                                </div>
+                                <svg class="w-8 h-8 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.592 1L21 12h-3.812c-.622 1.043-1.554 1.795-2.67 2.234l-1.355 1.355C12.71 17.065 11.2 17.5 9.75 17.5H4.25c-1.24 0-2.25-1.01-2.25-2.25v-2.5c0-1.24 1.01-2.25 2.25-2.25h5.5c1.45 0 2.96-.435 4.125-1.25l1.355-1.355C14.462 7.105 15.394 6.353 16.016 5.31H21l-5.408-2.704C14.08 2.402 13.11 2 12 2z"></path></svg>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-medium mt-8 mb-4 text-gray-800 border-b pb-3">Sales Details (Filtered)</h3>
+                        <div class="overflow-x-auto" id="report-sales-table-container">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Sold</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-sales-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                        
+                        <h3 class="text-xl font-medium mt-8 mb-4 text-gray-800 border-b pb-3">Expense Details (Filtered)</h3>
+                        <div class="overflow-x-auto" id="report-expenses-table-container">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-expenses-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="menu-management" class="content-section hidden space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Menu Management</h2>
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-5 text-gray-800">Menu Items</h3>
+
+                        <form id="menu-form" class="bg-gray-50 p-6 rounded-lg shadow-inner mb-6 space-y-4">
+                            <h4 class="text-lg font-medium text-gray-700 border-b pb-2">Add/Edit Menu Item</h4>
+                            <input type="hidden" id="menu-item-id">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="space-y-1">
+                                    <label for="item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
+                                    <input type="text" id="item-name" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                                <div class="space-y-1">
+                                    <label for="item-price" class="block text-sm font-medium text-gray-700">Price (Ugshs)</label>
+                                    <input type="number" id="item-price" step="0.01" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                                <div class="space-y-1">
+                                    <label for="item-category" class="block text-sm font-medium text-gray-700">Category</label>
+                                    <input type="text" id="item-category" required class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                                </div>
+                            </div>
+                            <div class="flex space-x-4 pt-4">
+                                <button type="submit" class="bg-accent-green text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-600 transition duration-300 shadow-md">
+                                    Save Item
+                                </button>
+                                <button type="button" id="cancel-menu-edit-btn" class="bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-600 transition duration-300 shadow-md hidden">
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="menu-items-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="auditlogs" class="content-section hidden space-y-6">
+                    <h2 class="text-3xl font-semibold text-primary-dark">Audit Logs</h2>
+                    <div class="bg-card-bg p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-medium mb-5 text-gray-800">Recent System Activity</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-logs-table-body" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+            </div>
+            
+            <div id="recipe-edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full relative">
+                    <button id="close-modal-btn" onclick="closeRecipeEditModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition duration-150">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    <h3 class="text-2xl font-semibold mb-6 text-primary-dark border-b pb-3">Edit Menu Item & Recipe</h3>
+
+                    <div class="space-y-4 mb-6">
+                        <div class="space-y-1">
+                            <label for="modal-item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
+                            <input type="text" id="modal-item-name" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <div class="space-y-1">
+                            <label for="modal-item-price" class="block text-sm font-medium text-gray-700">Price (Ugshs)</label>
+                            <input type="number" id="modal-item-price" step="0.01" min="0" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                        <div class="space-y-1">
+                            <label for="modal-item-category" class="block text-sm font-medium text-gray-700">Category</label>
+                            <input type="text" id="modal-item-category" class="form-input block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-accent-blue focus:border-accent-blue">
+                        </div>
+                    </div>
+
+                    <h4 class="text-lg font-medium mb-4 text-gray-700 border-b pb-2">Recipe Ingredients</h4>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ingredient</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-recipe-table-body" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-end space-x-4">
+                        <button onclick="saveEditedMenuItem()" class="bg-accent-blue text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 shadow-md">
+                            Save Changes
+                        </button>
+                        <button onclick="closeRecipeEditModal()" class="bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-600 transition duration-300 shadow-md">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="script9.js"></script>
+    
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidebar() {
+            const isHidden = sidebar.classList.contains('-translate-x-full');
+            
+            if (isHidden) {
+                // Show sidebar
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-50', 'pointer-events-auto');
+            } else {
+                // Hide sidebar
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.remove('opacity-50', 'pointer-events-auto');
+                overlay.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+            }
+        }
+
+        menuToggle.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar); // Close sidebar when clicking overlay
+        
+        // Ensure nav links close sidebar on mobile
+        document.querySelectorAll('.nav-link').forEach(link => {
+             link.addEventListener('click', () => {
+                if (window.innerWidth < 1024) { // 1024px is Tailwind's 'lg' breakpoint
+                    toggleSidebar();
+                }
+             });
+        });
+        
+        // Add active class handling (example logic)
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Update active link style
+                document.querySelectorAll('.nav-link').forEach(nav => {
+                    nav.classList.remove('bg-slate-700', 'text-white');
+                    nav.classList.add('text-gray-200');
+                });
+                this.classList.add('bg-slate-700', 'text-white');
+                this.classList.remove('text-gray-200');
+                
+                // Show/hide content sections (must be handled by script9.js or similar logic)
+                const sectionId = this.getAttribute('data-section');
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.classList.add('hidden');
+                    section.classList.remove('active');
+                });
+                const activeSection = document.getElementById(sectionId);
+                if (activeSection) {
+                    activeSection.classList.remove('hidden');
+                    activeSection.classList.add('active');
+                    document.getElementById('current-section-title').textContent = activeSection.querySelector('h2').textContent;
+                }
+            });
+        });
+
+        // Initialize first section as active (Order Management)
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstSection = document.querySelector('#content-area .content-section.active');
+            if (firstSection) {
+                document.getElementById('current-section-title').textContent = firstSection.querySelector('h2').textContent;
+            }
+        });
+        
+    </script>
+
+</body>
+</html>

@@ -58,7 +58,7 @@
         </button>
 
 
-        <aside class="fixed inset-y-0 left-0 z-30 w-64 bg-primary-dark text-primary-light transform transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0" id="sidebar">
+       <aside class="fixed inset-y-0 left-0 z-30 w-64 bg-primary-dark text-primary-light transform transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0" id="sidebar">
     <div class="p-6 flex flex-col h-20">
         <div class="flex items-center">
             <img src="patrina.png" alt="Patrinah Hotel Logo" class="h-8 w-8 mr-3 rounded-full object-cover">
@@ -70,7 +70,7 @@
     <nav class="flex-grow p-4">
         <ul class="space-y-1">
             <li>
-                <a href="#" data-section="order-management" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200 bg-slate-700 text-white">
+                <a href="#" data-section="order-management" class="nav-link flex items-center p-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-slate-700 hover:text-white transition duration-200">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                     Make Order
                 </a>
@@ -554,7 +554,43 @@
     </div>
 
     <script src="script9.js"></script>
-    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const navLinks = document.querySelectorAll('.nav-link');
+        const activeClasses = ['bg-slate-700', 'text-white']; // Tailwind classes for the active state
+        const inactiveClasses = ['text-gray-200']; // Tailwind classes for the inactive state (already present in all links)
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(event) {
+                // Prevent default link behavior if you are only switching content via JS
+                // event.preventDefault(); 
+                
+                // 1. Remove active classes from all links
+                navLinks.forEach(item => {
+                    item.classList.remove(...activeClasses);
+                    item.classList.add('text-gray-200'); // Ensure it returns to the inactive color
+                });
+
+                // 2. Add active classes to the clicked link
+                this.classList.add(...activeClasses);
+                this.classList.remove('text-gray-200'); // Remove the inactive color class
+                
+                // You would typically load the content for this data-section here
+                // console.log('Loading content for:', this.getAttribute('data-section'));
+            });
+        });
+        
+        // **Optional: Set the first item as active on page load if nothing is selected**
+        // In a real application, you would check the current URL/state to determine the initial active tab.
+        // For demonstration, let's keep it simple and start with NO active tab, unless you want one.
+        // If you wanted "Make Order" active by default:
+        // const defaultActive = document.querySelector('[data-section="order-management"]');
+        // if (defaultActive) {
+        //     defaultActive.classList.add(...activeClasses);
+        //     defaultActive.classList.remove('text-gray-200');
+        // }
+    });
+</script>
     <script>
         const sidebar = document.getElementById('sidebar');
         const menuToggle = document.getElementById('menu-toggle');
@@ -622,6 +658,8 @@
                 document.getElementById('current-section-title').textContent = firstSection.querySelector('h2').textContent;
             }
         });
+
+
         
     </script>
 
